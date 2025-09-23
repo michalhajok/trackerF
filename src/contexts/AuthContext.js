@@ -1,11 +1,17 @@
 /**
- * Authentication Context
+ * Authentication Context - FIXED for Hydration Issues
  * Simple Context API for auth state management (JavaScript only)
  */
 
 "use client";
 
-import { createContext, useContext, useEffect, useReducer } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useReducer,
+  useState,
+} from "react";
 import { apiEndpoints } from "@/lib/api";
 
 // Auth states
@@ -81,12 +87,20 @@ function authReducer(state, action) {
 // Create context
 const AuthContext = createContext(null);
 
-// Auth Provider Component
+// Auth Provider Component - FIXED for hydration
 export function AuthProvider({ children }) {
   const [state, dispatch] = useReducer(authReducer, initialState);
+  const [isMounted, setIsMounted] = useState(false);
 
-  // Initialize auth from localStorage
+  // Handle client-side mounting to prevent hydration mismatch
   useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Initialize auth from localStorage (only on client)
+  useEffect(() => {
+    if (!isMounted) return;
+
     const initializeAuth = () => {
       try {
         const token = localStorage.getItem("auth_token");
@@ -132,7 +146,7 @@ export function AuthProvider({ children }) {
     };
 
     initializeAuth();
-  }, []);
+  }, [isMounted]);
 
   // Login function
   const login = async (credentials) => {
@@ -142,9 +156,11 @@ export function AuthProvider({ children }) {
       const response = await apiEndpoints.auth.login(credentials);
 
       if (response.data?.token && response.data?.user) {
-        // Store in localStorage
-        localStorage.setItem("auth_token", response.data.token);
-        localStorage.setItem("user", JSON.stringify(response.data.user));
+        // Store in localStorage (only on client)
+        if (typeof window !== "undefined") {
+          localStorage.setItem("auth_token", response.data.token);
+          localStorage.setItem("user", JSON.stringify(response.data.user));
+        }
 
         dispatch({
           type: AUTH_ACTIONS.LOGIN_SUCCESS,
@@ -172,6 +188,25 @@ export function AuthProvider({ children }) {
 
     try {
       const response = await apiEndpoints.auth.register(userData);
+
+      // For register, we might want to auto-login or just return success
+      if (response.data?.token && response.data?.user) {
+        // Auto-login after successful registration
+        if (typeof window !== "undefined") {
+          localStorage.setItem("auth_token", response.data.token);
+          localStorage.setItem("user", JSON.stringify(response.data.user));
+        }
+
+        dispatch({
+          type: AUTH_ACTIONS.LOGIN_SUCCESS,
+          payload: response.data,
+        });
+      } else {
+        dispatch({
+          type: AUTH_ACTIONS.CLEAR_ERROR,
+        });
+      }
+
       return { success: true, data: response.data };
     } catch (error) {
       const errorMessage =
@@ -192,9 +227,11 @@ export function AuthProvider({ children }) {
       console.error("Logout API error:", error);
       // Continue with local logout even if API call fails
     } finally {
-      // Clear localStorage
-      localStorage.removeItem("auth_token");
-      localStorage.removeItem("user");
+      // Clear localStorage (only on client)
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("auth_token");
+        localStorage.removeItem("user");
+      }
 
       // Update state
       dispatch({ type: AUTH_ACTIONS.LOGOUT });
@@ -220,6 +257,7 @@ export function AuthProvider({ children }) {
   const value = {
     // State
     ...state,
+    isMounted, // Expose mounted state for components
 
     // Actions
     login,
@@ -228,6 +266,15 @@ export function AuthProvider({ children }) {
     clearError,
     getCurrentUser,
   };
+
+  // Don't render children until mounted to prevent hydration mismatch
+  if (!isMounted) {
+    return (
+      <AuthContext.Provider value={{ ...initialState, isMounted: false }}>
+        {children}
+      </AuthContext.Provider>
+    );
+  }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
