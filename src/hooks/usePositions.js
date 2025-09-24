@@ -1,18 +1,16 @@
-# usePositions.js (React Query Hook)
+"use client";
 
-```javascript
-'use client';
-
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '@/lib/api';
-import { useToast } from '@/components/ui/Toast';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import apiClient from "@/lib/api";
+import { useToast } from "@/components/ui/Toast";
 
 /**
  * Query hook for fetching positions
  */
 export function usePositions(filters = {}) {
+  let api = apiClient;
   return useQuery({
-    queryKey: ['positions', filters],
+    queryKey: ["positions", filters],
     queryFn: () => api.positions.getAll(filters),
     select: (data) => data.data,
     staleTime: 1000 * 60 * 5, // 5 minutes
@@ -23,14 +21,14 @@ export function usePositions(filters = {}) {
  * Query hook for fetching open positions
  */
 export function useOpenPositions() {
-  return usePositions({ status: 'open' });
+  return usePositions({ status: "open" });
 }
 
 /**
  * Query hook for fetching closed positions
  */
 export function useClosedPositions() {
-  return usePositions({ status: 'closed' });
+  return usePositions({ status: "closed" });
 }
 
 /**
@@ -38,7 +36,7 @@ export function useClosedPositions() {
  */
 export function usePosition(id) {
   return useQuery({
-    queryKey: ['position', id],
+    queryKey: ["position", id],
     queryFn: () => api.positions.getById(id),
     select: (data) => data.data,
     enabled: !!id,
@@ -55,12 +53,14 @@ export function useCreatePosition() {
   return useMutation({
     mutationFn: (positionData) => api.positions.create(positionData),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['positions'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
-      toast.success('Pozycja została utworzona pomyślnie');
+      queryClient.invalidateQueries({ queryKey: ["positions"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard", "stats"] });
+      toast.success("Pozycja została utworzona pomyślnie");
     },
     onError: (error) => {
-      toast.error(error.response?.data?.message || 'Błąd podczas tworzenia pozycji');
+      toast.error(
+        error.response?.data?.message || "Błąd podczas tworzenia pozycji"
+      );
     },
   });
 }
@@ -75,13 +75,15 @@ export function useUpdatePosition() {
   return useMutation({
     mutationFn: ({ id, ...data }) => api.positions.update(id, data),
     onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['positions'] });
-      queryClient.invalidateQueries({ queryKey: ['position', variables.id] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
-      toast.success('Pozycja została zaktualizowana');
+      queryClient.invalidateQueries({ queryKey: ["positions"] });
+      queryClient.invalidateQueries({ queryKey: ["position", variables.id] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard", "stats"] });
+      toast.success("Pozycja została zaktualizowana");
     },
     onError: (error) => {
-      toast.error(error.response?.data?.message || 'Błąd podczas aktualizacji pozycji');
+      toast.error(
+        error.response?.data?.message || "Błąd podczas aktualizacji pozycji"
+      );
     },
   });
 }
@@ -96,13 +98,15 @@ export function useClosePosition() {
   return useMutation({
     mutationFn: ({ id, closeData }) => api.positions.close(id, closeData),
     onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['positions'] });
-      queryClient.invalidateQueries({ queryKey: ['position', variables.id] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
-      toast.success('Pozycja została zamknięta');
+      queryClient.invalidateQueries({ queryKey: ["positions"] });
+      queryClient.invalidateQueries({ queryKey: ["position", variables.id] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard", "stats"] });
+      toast.success("Pozycja została zamknięta");
     },
     onError: (error) => {
-      toast.error(error.response?.data?.message || 'Błąd podczas zamykania pozycji');
+      toast.error(
+        error.response?.data?.message || "Błąd podczas zamykania pozycji"
+      );
     },
   });
 }
@@ -117,12 +121,14 @@ export function useDeletePosition() {
   return useMutation({
     mutationFn: (id) => api.positions.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['positions'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
-      toast.success('Pozycja została usunięta');
+      queryClient.invalidateQueries({ queryKey: ["positions"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard", "stats"] });
+      toast.success("Pozycja została usunięta");
     },
     onError: (error) => {
-      toast.error(error.response?.data?.message || 'Błąd podczas usuwania pozycji');
+      toast.error(
+        error.response?.data?.message || "Błąd podczas usuwania pozycji"
+      );
     },
   });
 }
@@ -132,7 +138,7 @@ export function useDeletePosition() {
  */
 export function usePositionStats() {
   return useQuery({
-    queryKey: ['positions', 'stats'],
+    queryKey: ["positions", "stats"],
     queryFn: () => api.positions.getStats(),
     select: (data) => data.data,
     staleTime: 1000 * 60 * 2, // 2 minutes
@@ -144,7 +150,7 @@ export function usePositionStats() {
  */
 export function usePositionPerformance(positionId) {
   return useQuery({
-    queryKey: ['position', positionId, 'performance'],
+    queryKey: ["position", positionId, "performance"],
     queryFn: () => api.positions.getPerformance(positionId),
     select: (data) => data.data,
     enabled: !!positionId,
@@ -152,4 +158,3 @@ export function usePositionPerformance(positionId) {
 }
 
 export default usePositions;
-```
