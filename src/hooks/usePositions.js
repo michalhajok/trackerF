@@ -1,160 +1,165 @@
-"use client";
-
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import apiClient from "@/lib/api";
-import { useToast } from "@/components/ui/Toast";
-
 /**
- * Query hook for fetching positions
+ * Complete usePositions Hook with ALL exports
+ * Fixes missing useOpenPositions and useClosedPositions exports
  */
-export function usePositions(filters = {}) {
-  let api = apiClient;
-  return useQuery({
-    queryKey: ["positions", filters],
-    queryFn: () => api.positions.getAll(filters),
-    select: (data) => data.data,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+
+import { useState, useEffect, useMemo } from "react";
+import { apiEndpoints } from "@/lib/api";
+
+// Main usePositions hook
+const usePositions = (params = {}) => {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Convert params to string for dependency comparison
+  const paramsKey = JSON.stringify(params);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchPositions = async () => {
+      try {
+        console.log("🔍 Fetching positions with params:", params);
+        setLoading(true);
+        setError(null);
+
+        const response = await apiEndpoints.positions.getAll(params);
+
+        // Check if component was unmounted
+        if (cancelled) return;
+
+        console.log("✅ Positions fetched:", response);
+
+        if (response?.success && response?.data) {
+          setData(response.data);
+        } else if (Array.isArray(response)) {
+          // Handle direct array response
+          setData(response);
+        } else {
+          console.warn("⚠️ Unexpected response format:", response);
+          setData([]);
+        }
+      } catch (err) {
+        if (cancelled) return;
+
+        console.error("❌ Error fetching positions:", err);
+        setError(err.message || "Failed to fetch positions");
+        setData([]);
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchPositions();
+
+    // Cleanup function
+    return () => {
+      cancelled = true;
+    };
+  }, [paramsKey]); // ✅ Proper dependency array
+
+  // Refetch function
+  const refetch = () => {
+    setLoading(true);
+    setError(null);
+    // Force re-fetch by updating state
+    setData(null);
+  };
+
+  return {
+    data,
+    loading,
+    error,
+    refetch,
+  };
+};
+
+// ✅ MISSING EXPORT - useOpenPositions
+export const useOpenPositions = (params = {}) => {
+  console.log("🔍 useOpenPositions called with params:", params);
+
+  const openParams = useMemo(
+    () => ({
+      ...params,
+      status: "open",
+    }),
+    [params]
+  );
+
+  const result = usePositions(openParams);
+
+  console.log("🔍 useOpenPositions result:", {
+    loading: result.loading,
+    dataLength: result.data?.length,
+    error: result.error,
   });
-}
 
-/**
- * Query hook for fetching open positions
- */
-export function useOpenPositions() {
-  return usePositions({ status: "open" });
-}
+  return {
+    ...result,
+    openPositions: result.data || [],
+  };
+};
 
-/**
- * Query hook for fetching closed positions
- */
-export function useClosedPositions() {
-  return usePositions({ status: "closed" });
-}
+// ✅ MISSING EXPORT - useClosedPositions
+export const useClosedPositions = (params = {}) => {
+  console.log("🔍 useClosedPositions called with params:", params);
 
-/**
- * Query hook for fetching a single position
- */
-export function usePosition(id) {
-  return useQuery({
-    queryKey: ["position", id],
-    queryFn: () => api.positions.getById(id),
-    select: (data) => data.data,
-    enabled: !!id,
+  const closedParams = useMemo(
+    () => ({
+      ...params,
+      status: "closed",
+    }),
+    [params]
+  );
+
+  const result = usePositions(closedParams);
+
+  console.log("🔍 useClosedPositions result:", {
+    loading: result.loading,
+    dataLength: result.data?.length,
+    error: result.error,
   });
-}
 
-/**
- * Mutation hook for creating a new position
- */
-export function useCreatePosition() {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
+  return {
+    ...result,
+    closedPositions: result.data || [],
+  };
+};
 
-  return useMutation({
-    mutationFn: (positionData) => api.positions.create(positionData),
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["positions"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard", "stats"] });
-      toast.success("Pozycja została utworzona pomyślnie");
-    },
-    onError: (error) => {
-      toast.error(
-        error.response?.data?.message || "Błąd podczas tworzenia pozycji"
-      );
-    },
-  });
-}
+// ✅ ADDITIONAL USEFUL EXPORTS
+export const usePositionsBySymbol = (symbol, params = {}) => {
+  const symbolParams = useMemo(
+    () => ({
+      ...params,
+      symbol,
+    }),
+    [symbol, params]
+  );
 
-/**
- * Mutation hook for updating a position
- */
-export function useUpdatePosition() {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
+  return usePositions(symbolParams);
+};
 
-  return useMutation({
-    mutationFn: ({ id, ...data }) => api.positions.update(id, data),
-    onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["positions"] });
-      queryClient.invalidateQueries({ queryKey: ["position", variables.id] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard", "stats"] });
-      toast.success("Pozycja została zaktualizowana");
-    },
-    onError: (error) => {
-      toast.error(
-        error.response?.data?.message || "Błąd podczas aktualizacji pozycji"
-      );
-    },
-  });
-}
+export const useAllPositions = (params = {}) => {
+  const result = usePositions(params);
 
-/**
- * Mutation hook for closing a position
- */
-export function useClosePosition() {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
+  const memoizedData = useMemo(() => {
+    if (!result.data) return { open: [], closed: [] };
 
-  return useMutation({
-    mutationFn: ({ id, closeData }) => api.positions.close(id, closeData),
-    onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["positions"] });
-      queryClient.invalidateQueries({ queryKey: ["position", variables.id] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard", "stats"] });
-      toast.success("Pozycja została zamknięta");
-    },
-    onError: (error) => {
-      toast.error(
-        error.response?.data?.message || "Błąd podczas zamykania pozycji"
-      );
-    },
-  });
-}
+    return {
+      open: result.data.filter((pos) => pos.status === "open"),
+      closed: result.data.filter((pos) => pos.status === "closed"),
+      all: result.data,
+    };
+  }, [result.data]);
 
-/**
- * Mutation hook for deleting a position
- */
-export function useDeletePosition() {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
+  return {
+    ...result,
+    positions: memoizedData,
+  };
+};
 
-  return useMutation({
-    mutationFn: (id) => api.positions.delete(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["positions"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard", "stats"] });
-      toast.success("Pozycja została usunięta");
-    },
-    onError: (error) => {
-      toast.error(
-        error.response?.data?.message || "Błąd podczas usuwania pozycji"
-      );
-    },
-  });
-}
-
-/**
- * Hook for position statistics
- */
-export function usePositionStats() {
-  return useQuery({
-    queryKey: ["positions", "stats"],
-    queryFn: () => api.positions.getStats(),
-    select: (data) => data.data,
-    staleTime: 1000 * 60 * 2, // 2 minutes
-  });
-}
-
-/**
- * Hook for position performance data
- */
-export function usePositionPerformance(positionId) {
-  return useQuery({
-    queryKey: ["position", positionId, "performance"],
-    queryFn: () => api.positions.getPerformance(positionId),
-    select: (data) => data.data,
-    enabled: !!positionId,
-  });
-}
-
+// Default export
 export default usePositions;

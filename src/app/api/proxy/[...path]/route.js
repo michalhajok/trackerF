@@ -1,6 +1,7 @@
 /**
- * API Proxy Route - Using node-fetch to avoid undici "bad port" bug
+ * API Proxy Route - DISABLED MOCK RESPONSES
  * Routes API calls from Next.js frontend to Express backend
+ * Fixed to always use real backend, never mock responses
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -11,8 +12,9 @@ const fetch = (...args) =>
 
 const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:6000/api";
 const BACKEND_TIMEOUT = 10000; // 10 seconds
-const ENABLE_FALLBACK_MOCK =
-  process.env.NEXT_PUBLIC_ENABLE_MOCK_API !== "false";
+
+// DISABLED MOCK - Always try real backend
+const ENABLE_FALLBACK_MOCK = false; // ❌ DISABLED - no more mock responses!
 
 export async function GET(request, { params }) {
   return handleRequest(request, params, "GET");
@@ -36,7 +38,6 @@ export async function PATCH(request, { params }) {
 
 export async function OPTIONS(request) {
   console.log("🔧 OPTIONS request received");
-
   return new NextResponse(null, {
     status: 200,
     headers: {
@@ -74,27 +75,21 @@ async function handleRequest(request, params, method) {
   }
 
   try {
-    // First, try to connect to backend
+    // Always try to connect to real backend
     const backendResponse = await forwardToBackend(
       pathString,
       method,
       requestBodyString,
       request
     );
+
     console.log(`✅ Backend response successful: ${method} /${pathString}`);
     return backendResponse;
   } catch (error) {
     console.error(`❌ Backend connection failed: ${error.message}`);
 
-    // If backend fails and mock is enabled, use fallback
-    if (ENABLE_FALLBACK_MOCK) {
-      console.log(
-        `🎭 Using fallback mock response for: ${method} /${pathString}`
-      );
-      return getMockResponse(pathString, method, requestBody || {});
-    }
-
-    // Otherwise, return the backend error
+    // REMOVED MOCK FALLBACK - Always return backend error
+    console.error(`❌ No fallback - returning backend error`);
     return createErrorResponse(error, 503);
   }
 }
@@ -127,7 +122,9 @@ async function forwardToBackend(
   const authHeader = request.headers.get("authorization");
   if (authHeader) {
     headers["Authorization"] = authHeader;
-    console.log(`📤 Added Authorization header`);
+    console.log(
+      `📤 Added Authorization header: ${authHeader.substring(0, 20)}...`
+    );
   }
 
   console.log(`📤 Final headers:`, headers);
@@ -210,68 +207,8 @@ async function forwardToBackend(
   }
 }
 
-function getMockResponse(pathString, method, body = {}) {
-  console.log(`🎭 Fallback Mock Response: ${method} /${pathString}`);
-
-  // Mock auth responses (matching backend format)
-  if (pathString.includes("auth/register")) {
-    return createMockResponse({
-      success: true,
-      message: "User registered successfully (MOCK)",
-      data: {
-        user: {
-          _id: "mock_" + Date.now(),
-          name: body.name || "Mock User",
-          email: body.email || "mock@example.com",
-          createdAt: new Date().toISOString(),
-        },
-        token: "mock_jwt_token_" + Math.random().toString(36).substr(2, 9),
-      },
-    });
-  }
-
-  if (pathString.includes("auth/login")) {
-    return createMockResponse({
-      success: true,
-      message: "Login successful (MOCK)",
-      data: {
-        user: {
-          _id: "mock_user_123",
-          name: "Mock User",
-          email: body.email || "mock@example.com",
-        },
-        token: "mock_jwt_token_" + Math.random().toString(36).substr(2, 9),
-      },
-    });
-  }
-
-  // Default response
-  return createMockResponse({
-    success: true,
-    data: [],
-    message: `Mock data for ${pathString}`,
-  });
-}
-
-function createMockResponse(data, status = 200) {
-  console.log(`✅ Returning mock response`);
-
-  return new NextResponse(JSON.stringify(data), {
-    status,
-    headers: {
-      "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
-      "Access-Control-Allow-Headers":
-        "Content-Type, Authorization, X-Requested-With",
-      "X-Mock-Response": "true",
-    },
-  });
-}
-
 function createErrorResponse(error, status = 500) {
   console.error(`❌ Proxy error:`, error.message);
-
   return new NextResponse(
     JSON.stringify({
       success: false,

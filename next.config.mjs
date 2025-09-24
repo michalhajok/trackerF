@@ -1,14 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Enable React Strict Mode for better development experience
+  reactStrictMode: true,
+
+  // Disable turbopack for stable production builds
   experimental: {
-    turbo: {
-      rules: {
-        "*.svg": {
-          loaders: ["@svgr/webpack"],
-          as: "*.js",
-        },
-      },
-    },
+    // Remove turbo configuration
   },
 
   // API configuration to prevent CORS issues
@@ -45,22 +42,38 @@ const nextConfig = {
     ];
   },
 
-  // Disable strict mode temporarily for debugging
-  reactStrictMode: false,
-
-  // Images configuration if needed
+  // Images configuration
   images: {
     domains: ["localhost"],
-    unoptimized: true, // For development
+    // Remove unoptimized for production
   },
 
-  // Webpack configuration for better debugging
+  // Webpack configuration for better performance
   webpack: (config, { dev, isServer }) => {
     if (dev && !isServer) {
-      config.devtool = "cheap-module-source-map";
+      config.devtool = "eval-source-map";
     }
+
+    // Optimize bundle size
+    if (!dev && !isServer) {
+      config.optimization = {
+        ...config.optimization,
+        usedExports: true,
+        sideEffects: false,
+      };
+    }
+
     return config;
   },
+
+  // Enable SWC minification for better performance
+  swcMinify: true,
+
+  // Output configuration
+  output: "standalone",
+
+  // Compression
+  compress: true,
 };
 
 export default nextConfig;

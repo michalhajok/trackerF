@@ -1,6 +1,6 @@
 /**
- * API Client with Enhanced Response Debugging
- * Fixed response parsing and error handling
+ * Complete API Client for Portfolio Manager
+ * All endpoints with enhanced debugging and error handling
  */
 
 import axios from "axios";
@@ -213,9 +213,9 @@ function generateRequestId() {
   return Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
 }
 
-// API Endpoints
+// COMPLETE API ENDPOINTS
 export const apiEndpoints = {
-  // Authentication endpoints
+  // 🔐 AUTHENTICATION ENDPOINTS
   auth: {
     login: async (credentials) => {
       console.log("🔐 Attempting login with:", { email: credentials.email });
@@ -246,15 +246,359 @@ export const apiEndpoints = {
     me: () => apiClient.get("/auth/me"),
     refresh: () => apiClient.post("/auth/refresh"),
     changePassword: (data) => apiClient.post("/auth/change-password", data),
+    updateProfile: (data) => apiClient.put("/auth/profile", data),
   },
 
-  // Other endpoints remain the same...
+  // 📈 POSITIONS ENDPOINTS
   positions: {
-    getAll: (params = {}) => apiClient.get("/positions", { params }),
-    getById: (id) => apiClient.get(`/positions/${id}`),
-    create: (data) => apiClient.post("/positions", data),
-    update: (id, data) => apiClient.put(`/positions/${id}`, data),
-    delete: (id) => apiClient.delete(`/positions/${id}`),
+    // Get all positions with filtering
+    getAll: (params = {}) => {
+      console.log("📈 Getting positions with params:", params);
+      return apiClient.get("/positions", { params });
+    },
+
+    // Get position by ID
+    getById: (id) => {
+      console.log("📈 Getting position by ID:", id);
+      return apiClient.get(`/positions/${id}`);
+    },
+
+    // Create new position
+    create: (data) => {
+      console.log("📈 Creating position:", data);
+      return apiClient.post("/positions", data);
+    },
+
+    // Update position
+    update: (id, data) => {
+      console.log("📈 Updating position:", id, data);
+      return apiClient.put(`/positions/${id}`, data);
+    },
+
+    // Delete position
+    delete: (id) => {
+      console.log("📈 Deleting position:", id);
+      return apiClient.delete(`/positions/${id}`);
+    },
+
+    // Close position
+    close: (id, data) => {
+      console.log("📈 Closing position:", id, data);
+      return apiClient.put(`/positions/${id}/close`, data);
+    },
+
+    // Update market price
+    updatePrice: (id, price) => {
+      console.log("📈 Updating position price:", id, price);
+      return apiClient.patch(`/positions/${id}/price`, { marketPrice: price });
+    },
+
+    // Get positions by status
+    getByStatus: (status) => {
+      console.log("📈 Getting positions by status:", status);
+      return apiClient.get("/positions", { params: { status } });
+    },
+
+    // Get positions by symbol
+    getBySymbol: (symbol) => {
+      console.log("📈 Getting positions by symbol:", symbol);
+      return apiClient.get("/positions", { params: { symbol } });
+    },
+  },
+
+  // 💰 CASH OPERATIONS ENDPOINTS
+  cashOperations: {
+    // Get all cash operations
+    getAll: (params = {}) => {
+      console.log("💰 Getting cash operations with params:", params);
+      return apiClient.get("/cash-operations", { params });
+    },
+
+    // Get cash operation by ID
+    getById: (id) => {
+      console.log("💰 Getting cash operation by ID:", id);
+      return apiClient.get(`/cash-operations/${id}`);
+    },
+
+    // Create new cash operation
+    create: (data) => {
+      console.log("💰 Creating cash operation:", data);
+      return apiClient.post("/cash-operations", data);
+    },
+
+    // Update cash operation
+    update: (id, data) => {
+      console.log("💰 Updating cash operation:", id, data);
+      return apiClient.put(`/cash-operations/${id}`, data);
+    },
+
+    // Delete cash operation
+    delete: (id) => {
+      console.log("💰 Deleting cash operation:", id);
+      return apiClient.delete(`/cash-operations/${id}`);
+    },
+
+    // Get operations by type
+    getByType: (type) => {
+      console.log("💰 Getting cash operations by type:", type);
+      return apiClient.get("/cash-operations", { params: { type } });
+    },
+
+    // Get cash balance
+    getBalance: () => {
+      console.log("💰 Getting cash balance");
+      return apiClient.get("/cash-operations/balance");
+    },
+
+    // Get cash summary
+    getSummary: (params = {}) => {
+      console.log("💰 Getting cash summary:", params);
+      return apiClient.get("/cash-operations/summary", { params });
+    },
+  },
+
+  // 📋 PENDING ORDERS ENDPOINTS
+  pendingOrders: {
+    // Get all pending orders
+    getAll: (params = {}) => {
+      console.log("📋 Getting pending orders with params:", params);
+      return apiClient.get("/pending-orders", { params });
+    },
+
+    // Get pending order by ID
+    getById: (id) => {
+      console.log("📋 Getting pending order by ID:", id);
+      return apiClient.get(`/pending-orders/${id}`);
+    },
+
+    // Create new pending order
+    create: (data) => {
+      console.log("📋 Creating pending order:", data);
+      return apiClient.post("/pending-orders", data);
+    },
+
+    // Update pending order
+    update: (id, data) => {
+      console.log("📋 Updating pending order:", id, data);
+      return apiClient.put(`/pending-orders/${id}`, data);
+    },
+
+    // Delete pending order
+    delete: (id) => {
+      console.log("📋 Deleting pending order:", id);
+      return apiClient.delete(`/pending-orders/${id}`);
+    },
+
+    // Execute pending order
+    execute: (id, data) => {
+      console.log("📋 Executing pending order:", id, data);
+      return apiClient.post(`/pending-orders/${id}/execute`, data);
+    },
+
+    // Cancel pending order
+    cancel: (id) => {
+      console.log("📋 Cancelling pending order:", id);
+      return apiClient.patch(`/pending-orders/${id}/cancel`);
+    },
+
+    // Get orders by status
+    getByStatus: (status) => {
+      console.log("📋 Getting pending orders by status:", status);
+      return apiClient.get("/pending-orders", { params: { status } });
+    },
+
+    // Get orders by symbol
+    getBySymbol: (symbol) => {
+      console.log("📋 Getting pending orders by symbol:", symbol);
+      return apiClient.get("/pending-orders", { params: { symbol } });
+    },
+  },
+
+  // 📊 ANALYTICS ENDPOINTS
+  analytics: {
+    // Get dashboard data
+    getDashboard: (params = {}) => {
+      console.log("📊 Getting dashboard analytics:", params);
+      return apiClient.get("/analytics/dashboard", { params });
+    },
+
+    // Get performance data
+    getPerformance: (params = {}) => {
+      console.log("📊 Getting performance analytics:", params);
+      return apiClient.get("/analytics/performance", { params });
+    },
+
+    // Get portfolio allocation
+    getAllocation: (params = {}) => {
+      console.log("📊 Getting allocation analytics:", params);
+      return apiClient.get("/analytics/allocation", { params });
+    },
+
+    // Get detailed statistics
+    getStatistics: (params = {}) => {
+      console.log("📊 Getting detailed statistics:", params);
+      return apiClient.get("/analytics/statistics", { params });
+    },
+
+    // Get P&L chart data
+    getPLChart: (params = {}) => {
+      console.log("📊 Getting P&L chart data:", params);
+      return apiClient.get("/analytics/pl-chart", { params });
+    },
+
+    // Get portfolio value history
+    getValueHistory: (params = {}) => {
+      console.log("📊 Getting portfolio value history:", params);
+      return apiClient.get("/analytics/value-history", { params });
+    },
+
+    // Get risk metrics
+    getRiskMetrics: (params = {}) => {
+      console.log("📊 Getting risk metrics:", params);
+      return apiClient.get("/analytics/risk", { params });
+    },
+
+    // Get portfolio comparison
+    getComparison: (params = {}) => {
+      console.log("📊 Getting portfolio comparison:", params);
+      return apiClient.get("/analytics/comparison", { params });
+    },
+  },
+
+  // 📁 FILE IMPORT ENDPOINTS
+  fileImport: {
+    // Upload file
+    upload: (file, options = {}) => {
+      console.log("📁 Uploading file:", file.name, options);
+      const formData = new FormData();
+      formData.append("file", file);
+
+      // Add additional options
+      Object.keys(options).forEach((key) => {
+        formData.append(key, options[key]);
+      });
+
+      return apiClient.post("/import/upload", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+    },
+
+    // Get import history
+    getHistory: (params = {}) => {
+      console.log("📁 Getting import history:", params);
+      return apiClient.get("/import/history", { params });
+    },
+
+    // Get import status
+    getStatus: (id) => {
+      console.log("📁 Getting import status:", id);
+      return apiClient.get(`/import/${id}/status`);
+    },
+
+    // Get import details
+    getDetails: (id) => {
+      console.log("📁 Getting import details:", id);
+      return apiClient.get(`/import/${id}`);
+    },
+
+    // Delete import
+    delete: (id) => {
+      console.log("📁 Deleting import:", id);
+      return apiClient.delete(`/import/${id}`);
+    },
+
+    // Retry failed import
+    retry: (id) => {
+      console.log("📁 Retrying import:", id);
+      return apiClient.post(`/import/${id}/retry`);
+    },
+
+    // Get import template
+    getTemplate: (type = "positions") => {
+      console.log("📁 Getting import template:", type);
+      return apiClient.get("/import/template", { params: { type } });
+    },
+  },
+
+  // 🏥 HEALTH & SYSTEM ENDPOINTS
+  system: {
+    // Get system health
+    getHealth: () => {
+      console.log("🏥 Getting system health");
+      return apiClient.get("/health");
+    },
+
+    // Get API info
+    getInfo: () => {
+      console.log("🏥 Getting API info");
+      return apiClient.get("/");
+    },
+
+    // Get user statistics
+    getUserStats: () => {
+      console.log("🏥 Getting user statistics");
+      return apiClient.get("/analytics/user-stats");
+    },
+  },
+
+  // 🔍 SEARCH ENDPOINTS
+  search: {
+    // Global search
+    global: (query, params = {}) => {
+      console.log("🔍 Global search:", query, params);
+      return apiClient.get("/search", { params: { q: query, ...params } });
+    },
+
+    // Search symbols
+    symbols: (query, params = {}) => {
+      console.log("🔍 Symbol search:", query, params);
+      return apiClient.get("/search/symbols", {
+        params: { q: query, ...params },
+      });
+    },
+
+    // Search positions
+    positions: (query, params = {}) => {
+      console.log("🔍 Position search:", query, params);
+      return apiClient.get("/search/positions", {
+        params: { q: query, ...params },
+      });
+    },
+  },
+
+  // 📱 NOTIFICATIONS ENDPOINTS
+  notifications: {
+    // Get all notifications
+    getAll: (params = {}) => {
+      console.log("📱 Getting notifications:", params);
+      return apiClient.get("/notifications", { params });
+    },
+
+    // Mark as read
+    markAsRead: (id) => {
+      console.log("📱 Marking notification as read:", id);
+      return apiClient.patch(`/notifications/${id}/read`);
+    },
+
+    // Mark all as read
+    markAllAsRead: () => {
+      console.log("📱 Marking all notifications as read");
+      return apiClient.patch("/notifications/read-all");
+    },
+
+    // Delete notification
+    delete: (id) => {
+      console.log("📱 Deleting notification:", id);
+      return apiClient.delete(`/notifications/${id}`);
+    },
+
+    // Get unread count
+    getUnreadCount: () => {
+      console.log("📱 Getting unread notification count");
+      return apiClient.get("/notifications/unread-count");
+    },
   },
 };
 

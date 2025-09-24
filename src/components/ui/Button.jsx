@@ -1,53 +1,82 @@
-import { forwardRef } from "react";
+/**
+ * Button Component - Professional Design with New Colors
+ * Beautiful, accessible, and consistent styling
+ */
+
+import React, { forwardRef } from "react";
 import { cn } from "@/lib/utils";
 
 const Button = forwardRef(
   (
     {
-      children,
       className,
       variant = "primary",
       size = "md",
-      disabled = false,
-      loading = false,
-      type = "button",
+      children,
+      disabled,
+      loading,
       ...props
     },
     ref
   ) => {
+    const baseStyles =
+      "inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed";
+
     const variants = {
+      // Primary - Professional blue
       primary:
-        "bg-primary-500 hover:bg-primary-600 text-white shadow-sm disabled:bg-gray-300",
+        "bg-primary-500 hover:bg-primary-600 focus:ring-primary-500 text-white shadow-sm hover:shadow-md",
+
+      // Secondary - Elegant purple
       secondary:
-        "bg-gray-100 hover:bg-gray-200 text-gray-900 border border-gray-300",
-      outline: "border border-primary-500 text-primary-500 hover:bg-primary-50",
-      danger: "bg-red-500 hover:bg-red-600 text-white shadow-sm",
-      ghost: "text-primary-500 hover:bg-primary-50",
+        "bg-secondary-500 hover:bg-secondary-600 focus:ring-secondary-500 text-white shadow-sm hover:shadow-md",
+
+      // Success - Fresh green
+      success:
+        "bg-success-500 hover:bg-success-600 focus:ring-success-500 text-white shadow-sm hover:shadow-md",
+
+      // Error - Clear red
+      error:
+        "bg-error-500 hover:bg-error-600 focus:ring-error-500 text-white shadow-sm hover:shadow-md",
+
+      // Warning - Vibrant orange
+      warning:
+        "bg-warning-500 hover:bg-warning-600 focus:ring-warning-500 text-white shadow-sm hover:shadow-md",
+
+      // Outline variants - Modern & clean
+      outline:
+        "border border-gray-300 bg-white hover:bg-gray-50 focus:ring-primary-500 text-gray-700 shadow-sm",
+      outlinePrimary:
+        "border border-primary-300 bg-white hover:bg-primary-50 focus:ring-primary-500 text-primary-700",
+
+      // Ghost variants - Subtle
+      ghost:
+        "bg-transparent hover:bg-gray-100 focus:ring-primary-500 text-gray-700",
+      ghostPrimary:
+        "bg-transparent hover:bg-primary-50 focus:ring-primary-500 text-primary-600",
+
+      // Link variant
+      link: "bg-transparent hover:underline focus:ring-primary-500 text-primary-600 hover:text-primary-700 p-0 h-auto shadow-none",
     };
 
     const sizes = {
-      sm: "px-3 py-1.5 text-sm",
-      md: "px-4 py-2 text-sm",
-      lg: "px-6 py-3 text-base",
+      xs: "px-2.5 py-1.5 text-xs",
+      sm: "px-3 py-2 text-sm",
+      md: "px-4 py-2.5 text-sm",
+      lg: "px-5 py-3 text-base",
+      xl: "px-6 py-3.5 text-lg",
     };
 
     return (
       <button
-        ref={ref}
-        type={type}
+        className={cn(baseStyles, variants[variant], sizes[size], className)}
         disabled={disabled || loading}
-        className={cn(
-          "inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60",
-          variants[variant],
-          sizes[size],
-          className
-        )}
+        ref={ref}
         {...props}
       >
         {loading && (
           <svg
-            className="animate-spin -ml-1 mr-2 h-4 w-4"
-            xmlns="http://www.w3.org/2000/svg"
+            className="w-4 h-4 mr-2 animate-spin"
             fill="none"
             viewBox="0 0 24 24"
           >
@@ -73,5 +102,6 @@ const Button = forwardRef(
 );
 
 Button.displayName = "Button";
-export { Button };
+
 export default Button;
+export { Button };
