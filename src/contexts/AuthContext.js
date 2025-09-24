@@ -155,23 +155,29 @@ export function AuthProvider({ children }) {
     try {
       const response = await apiEndpoints.auth.login(credentials);
 
-      if (response.data?.token && response.data?.user) {
-        // Store in localStorage (only on client)
+      console.log("🔐 AuthContext received response:", response);
+
+      // FIXED: Check actual backend response format
+      if (response && response.success && response.data) {
+        const { user, token } = response.data;
+
+        // Store in localStorage
         if (typeof window !== "undefined") {
-          localStorage.setItem("auth_token", response.data.token);
-          localStorage.setItem("user", JSON.stringify(response.data.user));
+          localStorage.setItem("auth_token", token);
+          localStorage.setItem("user", JSON.stringify(user));
         }
 
         dispatch({
           type: AUTH_ACTIONS.LOGIN_SUCCESS,
-          payload: response.data,
+          payload: { user, token },
         });
 
         return { success: true, data: response.data };
       } else {
-        throw new Error("Invalid response format");
+        throw new Error("Invalid response format from server");
       }
     } catch (error) {
+      console.error("🔐 AuthContext login error:", error);
       const errorMessage =
         error.response?.data?.message || error.message || "Login failed";
       dispatch({

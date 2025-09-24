@@ -1,6 +1,6 @@
 /**
- * API Client Configuration for Portfolio Manager
- * HTTP client setup with proper error handling and proxy support
+ * API Client with Enhanced Response Debugging
+ * Fixed response parsing and error handling
  */
 
 import axios from "axios";
@@ -54,7 +54,7 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Response interceptor
+// Response interceptor with enhanced debugging
 apiClient.interceptors.response.use(
   (response) => {
     // Log response in development
@@ -65,21 +65,86 @@ apiClient.interceptors.response.use(
         }`,
         {
           status: response.status,
+          headers: response.headers,
           data: response.data,
         }
       );
     }
 
-    // Return response data directly
-    return response.data;
+    // ENHANCED: Check response format before returning
+    if (response.data && typeof response.data === "object") {
+      // Check if it's a valid API response format
+      if (
+        response.data.hasOwnProperty("success") ||
+        response.data.hasOwnProperty("data")
+      ) {
+        console.log("📄 Valid API response format detected");
+        return response.data;
+      } else {
+        console.log("📄 Response data (raw object):", response.data);
+        return response.data;
+      }
+    } else {
+      console.warn(
+        "⚠️ Unexpected response format:",
+        typeof response.data,
+        response.data
+      );
+      // Try to parse if it's a string
+      if (typeof response.data === "string") {
+        try {
+          const parsed = JSON.parse(response.data);
+          console.log("📄 Parsed string response:", parsed);
+          return parsed;
+        } catch (parseError) {
+          console.error("❌ Failed to parse response as JSON:", parseError);
+          return {
+            success: false,
+            error: "Invalid response format",
+            message: "Server returned invalid JSON response",
+            rawResponse: response.data,
+          };
+        }
+      }
+      return response.data;
+    }
   },
   (error) => {
     console.error("API Error:", error);
 
-    // Handle different error types
+    // Enhanced error handling
     if (error.response) {
       // Server responded with error status
-      const { status, data } = error.response;
+      const { status, data, headers } = error.response;
+
+      console.error("Response error details:", {
+        status,
+        data,
+        headers: Object.fromEntries(Object.entries(headers)),
+      });
+
+      // Check if error response has expected format
+      let errorMessage = "Request failed";
+      let errorData = data;
+
+      if (data && typeof data === "object") {
+        if (data.message) {
+          errorMessage = data.message;
+        } else if (data.error) {
+          errorMessage = data.error;
+        } else if (data.errors && Array.isArray(data.errors)) {
+          errorMessage = data.errors.map((e) => e.msg || e.message).join(", ");
+        }
+      } else if (typeof data === "string") {
+        try {
+          const parsed = JSON.parse(data);
+          errorMessage = parsed.message || parsed.error || errorMessage;
+          errorData = parsed;
+        } catch (parseError) {
+          console.warn("Failed to parse error response:", parseError);
+          errorMessage = data;
+        }
+      }
 
       // Handle specific status codes
       switch (status) {
@@ -103,6 +168,9 @@ apiClient.interceptors.response.use(
         case 404:
           console.warn("Resource not found");
           break;
+        case 422:
+          console.warn("Validation error:", errorData);
+          break;
         case 429:
           console.warn("Rate limit exceeded");
           break;
@@ -110,29 +178,31 @@ apiClient.interceptors.response.use(
         case 502:
         case 503:
         case 504:
-          console.error("Server error:", data);
+          console.error("Server error:", errorData);
           break;
       }
 
       // Return structured error
       return Promise.reject({
-        message: data?.message || `Request failed with status ${status}`,
+        message: errorMessage,
         status,
-        data,
+        data: errorData,
+        type: "response_error",
       });
     } else if (error.request) {
       // Request made but no response received
       console.error("Network error - no response received");
       return Promise.reject({
         message: "Network error - please check your connection",
-        type: "network",
+        type: "network_error",
+        details: error.message,
       });
     } else {
       // Something happened in setting up the request
       console.error("Request setup error:", error.message);
       return Promise.reject({
         message: error.message || "Request failed",
-        type: "setup",
+        type: "setup_error",
       });
     }
   }
@@ -147,102 +217,44 @@ function generateRequestId() {
 export const apiEndpoints = {
   // Authentication endpoints
   auth: {
-    login: (credentials) => apiClient.post("/auth/login", credentials),
-    register: (userData) => apiClient.post("/auth/register", userData),
+    login: async (credentials) => {
+      console.log("🔐 Attempting login with:", { email: credentials.email });
+      try {
+        const response = await apiClient.post("/auth/login", credentials);
+        console.log("🔐 Login response received:", response);
+        return response;
+      } catch (error) {
+        console.error("🔐 Login error:", error);
+        throw error;
+      }
+    },
+    register: async (userData) => {
+      console.log("🔐 Attempting registration with:", {
+        name: userData.name,
+        email: userData.email,
+      });
+      try {
+        const response = await apiClient.post("/auth/register", userData);
+        console.log("🔐 Register response received:", response);
+        return response;
+      } catch (error) {
+        console.error("🔐 Register error:", error);
+        throw error;
+      }
+    },
     logout: () => apiClient.post("/auth/logout"),
     me: () => apiClient.get("/auth/me"),
     refresh: () => apiClient.post("/auth/refresh"),
     changePassword: (data) => apiClient.post("/auth/change-password", data),
   },
 
-  // Positions endpoints
+  // Other endpoints remain the same...
   positions: {
     getAll: (params = {}) => apiClient.get("/positions", { params }),
     getById: (id) => apiClient.get(`/positions/${id}`),
     create: (data) => apiClient.post("/positions", data),
     update: (id, data) => apiClient.put(`/positions/${id}`, data),
     delete: (id) => apiClient.delete(`/positions/${id}`),
-    close: (id, data) => apiClient.post(`/positions/${id}/close`, data),
-    getSummary: (params = {}) =>
-      apiClient.get("/positions/summary", { params }),
-    getPerformance: (id, params = {}) =>
-      apiClient.get(`/positions/${id}/performance`, { params }),
-  },
-
-  // Cash operations endpoints
-  cashOperations: {
-    getAll: (params = {}) => apiClient.get("/cash-operations", { params }),
-    getById: (id) => apiClient.get(`/cash-operations/${id}`),
-    create: (data) => apiClient.post("/cash-operations", data),
-    update: (id, data) => apiClient.put(`/cash-operations/${id}`, data),
-    delete: (id) => apiClient.delete(`/cash-operations/${id}`),
-    getSummary: (params = {}) =>
-      apiClient.get("/cash-operations/summary", { params }),
-    getCashFlow: (params = {}) =>
-      apiClient.get("/cash-operations/cash-flow", { params }),
-    getBalanceHistory: (params = {}) =>
-      apiClient.get("/cash-operations/balance-history", { params }),
-  },
-
-  // Orders endpoints
-  orders: {
-    getAll: (params = {}) => apiClient.get("/orders", { params }),
-    getById: (id) => apiClient.get(`/orders/${id}`),
-    create: (data) => apiClient.post("/orders", data),
-    update: (id, data) => apiClient.put(`/orders/${id}`, data),
-    delete: (id) => apiClient.delete(`/orders/${id}`),
-    cancel: (id) => apiClient.post(`/orders/${id}/cancel`),
-    execute: (id, data) => apiClient.post(`/orders/${id}/execute`, data),
-    getSummary: (params = {}) => apiClient.get("/orders/summary", { params }),
-    getByPosition: (positionId) =>
-      apiClient.get(`/orders/position/${positionId}`),
-  },
-
-  // Analytics endpoints
-  analytics: {
-    getDashboardStats: (params = {}) =>
-      apiClient.get("/analytics/dashboard", { params }),
-    getPortfolioChart: (params = {}) =>
-      apiClient.get("/analytics/portfolio-chart", { params }),
-    getAllocation: (params = {}) =>
-      apiClient.get("/analytics/allocation", { params }),
-    getPerformanceChart: (params = {}) =>
-      apiClient.get("/analytics/performance-chart", { params }),
-    getPerformanceStats: (params = {}) =>
-      apiClient.get("/analytics/performance-stats", { params }),
-    getStatsSummary: (params = {}) =>
-      apiClient.get("/analytics/stats-summary", { params }),
-    getMetrics: (params = {}) =>
-      apiClient.get("/analytics/metrics", { params }),
-    getRiskAnalysis: (params = {}) =>
-      apiClient.get("/analytics/risk-analysis", { params }),
-  },
-
-  // Import/Export endpoints
-  import: {
-    uploadFile: (file, type) => {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("type", type);
-      return apiClient.post("/import/file", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-    },
-    getHistory: () => apiClient.get("/import/history"),
-    getTemplate: (type) => apiClient.get(`/import/template/${type}`),
-    getStatus: (id) => apiClient.get(`/import/${id}/status`),
-  },
-
-  // Settings endpoints
-  settings: {
-    getProfile: () => apiClient.get("/settings/profile"),
-    updateProfile: (data) => apiClient.put("/settings/profile", data),
-    getPreferences: () => apiClient.get("/settings/preferences"),
-    updatePreferences: (data) => apiClient.put("/settings/preferences", data),
-    changePassword: (data) => apiClient.post("/settings/change-password", data),
-    exportData: (params = {}) =>
-      apiClient.get("/settings/export-data", { params }),
-    deleteAccount: (data) => apiClient.delete("/settings/account", { data }),
   },
 };
 

@@ -1,9 +1,13 @@
 /**
- * API Proxy Route - FIXED for Next.js 15 Async Params
+ * API Proxy Route - Using node-fetch to avoid undici "bad port" bug
  * Routes API calls from Next.js frontend to Express backend
  */
 
 import { NextRequest, NextResponse } from "next/server";
+
+// Import node-fetch for better compatibility
+const fetch = (...args) =>
+  import("node-fetch").then(({ default: fetch }) => fetch(...args));
 
 const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:6000/api";
 const BACKEND_TIMEOUT = 10000; // 10 seconds
@@ -51,21 +55,43 @@ async function handleRequest(request, params, method) {
   const pathString = Array.isArray(path) ? path.join("/") : path;
 
   console.log(`📡 Proxy Request: ${method} /${pathString}`);
+  console.log(`🌐 API_BASE_URL: ${API_BASE_URL}`);
+
+  // Read request body once and store it
+  let requestBody = null;
+  let requestBodyString = "";
+
+  if (["POST", "PUT", "PATCH"].includes(method)) {
+    try {
+      requestBodyString = await request.text();
+      if (requestBodyString) {
+        requestBody = JSON.parse(requestBodyString);
+        console.log(`📝 Request body:`, requestBody);
+      }
+    } catch (error) {
+      console.error("Error reading request body:", error);
+    }
+  }
 
   try {
     // First, try to connect to backend
-    const backendResponse = await forwardToBackend(request, pathString, method);
+    const backendResponse = await forwardToBackend(
+      pathString,
+      method,
+      requestBodyString,
+      request
+    );
     console.log(`✅ Backend response successful: ${method} /${pathString}`);
     return backendResponse;
   } catch (error) {
-    console.warn(`⚠️ Backend connection failed: ${error.message}`);
+    console.error(`❌ Backend connection failed: ${error.message}`);
 
     // If backend fails and mock is enabled, use fallback
     if (ENABLE_FALLBACK_MOCK) {
       console.log(
         `🎭 Using fallback mock response for: ${method} /${pathString}`
       );
-      return await getMockResponse(request, pathString, method);
+      return getMockResponse(pathString, method, requestBody || {});
     }
 
     // Otherwise, return the backend error
@@ -73,88 +99,77 @@ async function handleRequest(request, params, method) {
   }
 }
 
-async function forwardToBackend(request, pathString, method) {
-  const url = new URL(request.url);
-  const targetUrl = `${API_BASE_URL}/${pathString}${url.search}`;
+async function forwardToBackend(
+  pathString,
+  method,
+  requestBodyString,
+  request
+) {
+  // Construct target URL
+  const baseUrl = API_BASE_URL.endsWith("/")
+    ? API_BASE_URL.slice(0, -1)
+    : API_BASE_URL;
+  const cleanPath = pathString.startsWith("/")
+    ? pathString.slice(1)
+    : pathString;
+  const targetUrl = `${baseUrl}/${cleanPath}`;
 
-  console.log(`🔗 Forwarding to backend: ${targetUrl}`);
+  console.log(`🔗 Target URL: ${targetUrl}`);
 
-  // Prepare headers for backend
-  const headers = new Headers();
-  const headersToProxy = [
-    "authorization",
-    "content-type",
-    "accept",
-    "user-agent",
-    "x-requested-with",
-    "x-request-id",
-    "x-api-key", // Add API key header if needed
-  ];
+  // Prepare headers
+  const headers = {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+    "User-Agent": "NextJS-Proxy/1.0",
+  };
 
-  headersToProxy.forEach((header) => {
-    const value = request.headers.get(header);
-    if (value) {
-      headers.set(header, value);
-    }
-  });
-
-  // Add user-agent if not present (some backends require this)
-  if (!headers.get("user-agent")) {
-    headers.set("user-agent", "NextJS-Proxy/1.0");
+  // Add authorization header if present
+  const authHeader = request.headers.get("authorization");
+  if (authHeader) {
+    headers["Authorization"] = authHeader;
+    console.log(`📤 Added Authorization header`);
   }
 
-  // Get request body for non-GET requests
-  let body = undefined;
-  if (["POST", "PUT", "PATCH"].includes(method)) {
-    try {
-      body = await request.text();
-      if (body && !headers.get("content-type")) {
-        headers.set("content-type", "application/json");
-      }
-      console.log(`📝 Request body:`, body ? JSON.parse(body) : "empty");
-    } catch (error) {
-      console.error("Error reading request body:", error);
-    }
-  }
-
-  // Create timeout controller
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => {
-    controller.abort();
-  }, BACKEND_TIMEOUT);
+  console.log(`📤 Final headers:`, headers);
 
   try {
-    // Forward request to backend
-    const response = await fetch(targetUrl, {
-      method,
-      headers,
-      body,
-      signal: controller.signal,
-    });
+    console.log(`🚀 Making node-fetch request to: ${targetUrl}`);
+    console.log(`🚀 Method: ${method}`);
+    console.log(`🚀 Body: ${requestBodyString || "undefined"}`);
 
-    clearTimeout(timeoutId);
+    // Use node-fetch with explicit configuration
+    const fetchOptions = {
+      method: method,
+      headers: headers,
+      timeout: BACKEND_TIMEOUT,
+    };
+
+    // Only add body for methods that support it
+    if (["POST", "PUT", "PATCH"].includes(method) && requestBodyString) {
+      fetchOptions.body = requestBodyString;
+    }
+
+    console.log(`🚀 Fetch options:`, fetchOptions);
+
+    // Make the request using node-fetch
+    const response = await fetch(targetUrl, fetchOptions);
 
     console.log(`📬 Backend responded with status: ${response.status}`);
 
     // Get response data
     const responseText = await response.text();
-    let responseData;
+    console.log(
+      `📄 Response text:`,
+      responseText.substring(0, 200) + (responseText.length > 200 ? "..." : "")
+    );
 
+    let responseData;
     try {
       responseData = JSON.parse(responseText);
-    } catch {
+      console.log(`📄 Parsed response success`);
+    } catch (parseError) {
+      console.warn(`⚠️ Failed to parse response as JSON:`, parseError.message);
       responseData = { message: responseText };
-    }
-
-    console.log(`📄 Backend response:`, responseData);
-
-    // Check if backend returned error status
-    if (!response.ok) {
-      throw new Error(
-        `Backend returned ${response.status}: ${
-          responseData.message || "Unknown error"
-        }`
-      );
     }
 
     // Return backend response with CORS headers
@@ -168,40 +183,41 @@ async function forwardToBackend(request, pathString, method) {
         "Access-Control-Allow-Headers":
           "Content-Type, Authorization, X-Requested-With",
         "X-Forwarded-To": "backend",
+        "X-Backend-Status": response.status.toString(),
       },
     });
   } catch (error) {
-    clearTimeout(timeoutId);
+    console.error(`❌ node-fetch error:`, {
+      name: error.name,
+      message: error.message,
+      code: error.code,
+    });
 
-    if (error.name === "AbortError") {
-      throw new Error(`Backend timeout after ${BACKEND_TIMEOUT}ms`);
+    if (error.name === "FetchError") {
+      if (error.code === "ECONNREFUSED") {
+        throw new Error(
+          `Connection refused: Backend not running on ${targetUrl}`
+        );
+      }
+      if (error.code === "ETIMEDOUT") {
+        throw new Error(
+          `Connection timeout: Backend did not respond within ${BACKEND_TIMEOUT}ms`
+        );
+      }
     }
 
     throw new Error(`Backend connection failed: ${error.message}`);
   }
 }
 
-async function getMockResponse(request, pathString, method) {
+function getMockResponse(pathString, method, body = {}) {
   console.log(`🎭 Fallback Mock Response: ${method} /${pathString}`);
-
-  // Handle request body for POST/PUT/PATCH
-  let body = {};
-  if (["POST", "PUT", "PATCH"].includes(method)) {
-    try {
-      const text = await request.text();
-      if (text) {
-        body = JSON.parse(text);
-      }
-    } catch (error) {
-      console.warn("⚠️ Failed to parse request body:", error);
-    }
-  }
 
   // Mock auth responses (matching backend format)
   if (pathString.includes("auth/register")) {
     return createMockResponse({
       success: true,
-      message: "User registered successfully",
+      message: "User registered successfully (MOCK)",
       data: {
         user: {
           _id: "mock_" + Date.now(),
@@ -217,7 +233,7 @@ async function getMockResponse(request, pathString, method) {
   if (pathString.includes("auth/login")) {
     return createMockResponse({
       success: true,
-      message: "Login successful",
+      message: "Login successful (MOCK)",
       data: {
         user: {
           _id: "mock_user_123",
@@ -229,47 +245,7 @@ async function getMockResponse(request, pathString, method) {
     });
   }
 
-  if (pathString.includes("auth/logout")) {
-    return createMockResponse({
-      success: true,
-      message: "Logout successful",
-    });
-  }
-
-  if (pathString.includes("auth/me")) {
-    return createMockResponse({
-      success: true,
-      data: {
-        _id: "mock_user_123",
-        name: "Mock User",
-        email: "mock@example.com",
-        createdAt: "2025-01-01T00:00:00.000Z",
-      },
-    });
-  }
-
-  // Generic responses for other endpoints
-  if (["POST", "PUT", "PATCH"].includes(method)) {
-    return createMockResponse({
-      success: true,
-      message: `${method} operation successful`,
-      data: {
-        _id: "mock_" + Date.now(),
-        ...body,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    });
-  }
-
-  if (method === "DELETE") {
-    return createMockResponse({
-      success: true,
-      message: "Resource deleted successfully",
-    });
-  }
-
-  // Default GET response
+  // Default response
   return createMockResponse({
     success: true,
     data: [],
@@ -278,7 +254,7 @@ async function getMockResponse(request, pathString, method) {
 }
 
 function createMockResponse(data, status = 200) {
-  console.log(`✅ Returning mock response:`, data);
+  console.log(`✅ Returning mock response`);
 
   return new NextResponse(JSON.stringify(data), {
     status,
