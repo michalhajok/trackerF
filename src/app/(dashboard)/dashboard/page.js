@@ -39,6 +39,8 @@ export default function DashboardPage() {
     );
   }
 
+  console.log("Dashboard Data:", dashboardData);
+
   if (error) {
     return (
       <Alert variant="error">

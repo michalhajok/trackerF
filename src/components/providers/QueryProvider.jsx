@@ -1,6 +1,6 @@
 /**
- * Fixed QueryProvider - Prevents infinite retries
- * Proper error handling and retry limits
+ * QueryProvider - React Query Configuration
+ * Prevents infinite retries and proper error handling
  */
 
 "use client";
@@ -13,7 +13,7 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // ✅ Limit retries to prevent infinite loops
+      // Limit retries to prevent infinite loops
       retry: (failureCount, error) => {
         console.log(`🔍 Query retry attempt ${failureCount}:`, error);
 
@@ -27,25 +27,24 @@ const queryClient = new QueryClient({
         return failureCount < 3;
       },
 
-      // ✅ Retry delay with exponential backoff
+      // Retry delay with exponential backoff
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
 
-      // ✅ Cache time - 5 minutes
+      // Cache time - 5 minutes
       staleTime: 5 * 60 * 1000,
-      cacheTime: 10 * 60 * 1000,
 
-      // ✅ Refetch settings
+      // Refetch settings
       refetchOnWindowFocus: false,
       refetchOnMount: true,
       refetchOnReconnect: true,
 
-      // ✅ Error handling
+      // Error handling
       onError: (error) => {
         console.error("❌ Query error:", error);
       },
     },
     mutations: {
-      // ✅ No retries for mutations
+      // No retries for mutations
       retry: false,
 
       onError: (error) => {
@@ -74,7 +73,7 @@ const handleQueryError = (error, query) => {
   }
 };
 
-// Set global error handler
+// Set global error handlers
 queryClient.setQueryDefaults(["positions"], {
   onError: handleQueryError,
 });
@@ -83,7 +82,7 @@ queryClient.setQueryDefaults(["analytics"], {
   onError: handleQueryError,
 });
 
-queryClient.setQueryDefaults(["cash-operations"], {
+queryClient.setQueryDefaults(["dashboard"], {
   onError: handleQueryError,
 });
 
