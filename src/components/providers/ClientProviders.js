@@ -22,10 +22,10 @@ export default function ClientProviders({ children }) {
   }
 
   return (
-    <QueryProvider>
-      <AuthProvider>
-        <ToastProvider>{children}</ToastProvider>
-      </AuthProvider>
-    </QueryProvider>
+    // <QueryProvider>
+    <AuthProvider>
+      <ToastProvider>{children}</ToastProvider>
+    </AuthProvider>
+    // </QueryProvider>
   );
 }

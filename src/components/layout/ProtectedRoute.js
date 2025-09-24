@@ -7,7 +7,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/components/providers/AuthProvider";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 
 export default function ProtectedRoute({

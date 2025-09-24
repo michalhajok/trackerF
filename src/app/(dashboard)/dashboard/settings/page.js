@@ -28,7 +28,7 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { Alert } from "@/components/ui/Alert";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { Select } from "@/components/ui/Select";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/components/providers/AuthProvider";
 import { useToast } from "@/contexts/ToastContext";
 
 export default function SettingsPage() {

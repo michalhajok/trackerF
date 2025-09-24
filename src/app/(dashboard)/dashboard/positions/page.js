@@ -6,7 +6,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 export default function PositionsPage() {
   const { isAuthenticated, loading: authLoading } = useAuth();

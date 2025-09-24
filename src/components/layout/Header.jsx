@@ -8,7 +8,7 @@
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { Menu, Search, Bell, User } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 const pageNames = {
   "/dashboard": "Dashboard",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuthContext } from "@/contexts/AuthContext";
+import { useAuthContext } from "@/components/providers/AuthProvider";
 
 /**
  * Custom hook for authentication operations

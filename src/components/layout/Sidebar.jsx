@@ -18,7 +18,7 @@ import {
   LogOut,
   X,
 } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
