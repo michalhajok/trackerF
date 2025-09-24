@@ -1,13 +1,13 @@
 /**
- * Client-side Providers Wrapper
- * Fix for SSR/hydration issues with AppProviders
+ * ClientProviders - FIXED with QueryClient
+ * src/components/providers/ClientProviders.js
  */
 
 "use client";
 
 import { useState, useEffect } from "react";
 import AuthProvider from "./AuthProvider";
-import QueryProvider from "./QueryProvider";
+import QueryProvider from "./QueryProvider"; // ✅ Ensure import exists
 import ToastProvider from "./ToastProvider";
 
 export default function ClientProviders({ children }) {
@@ -22,10 +22,12 @@ export default function ClientProviders({ children }) {
   }
 
   return (
-    // <QueryProvider>
-    <AuthProvider>
-      <ToastProvider>{children}</ToastProvider>
-    </AuthProvider>
-    // </QueryProvider>
+    <QueryProvider>
+      {" "}
+      {/* ✅ MUST be outer wrapper for useQuery */}
+      <AuthProvider>
+        <ToastProvider>{children}</ToastProvider>
+      </AuthProvider>
+    </QueryProvider>
   );
 }

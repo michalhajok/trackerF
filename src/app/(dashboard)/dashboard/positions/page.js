@@ -184,8 +184,32 @@ export default function PositionsPage() {
     );
   }
 
-  const openPositions = positions.filter((pos) => pos.status === "open");
-  const closedPositions = positions.filter((pos) => pos.status === "closed");
+  const openPositions = positions.positions?.filter(
+    (pos) => pos.status === "open"
+  );
+  const closedPositions = positions.positions?.filter(
+    (pos) => pos.status === "closed"
+  );
+
+  if (positions.positions.length === 0) {
+    return (
+      <div className="p-6 bg-gray-50 min-h-screen">
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Positions</h1>
+          <p className="text-gray-600">Manage your trading positions</p>
+        </div>
+
+        <div className="flex items-center justify-center min-h-96">
+          <div className="text-center">
+            <p className="text-gray-600">No positions found.</p>
+            <button className="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">
+              Add Position
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">

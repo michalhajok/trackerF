@@ -1,4 +1,4 @@
-// src/components/providers/AuthProvider.jsx
+// src/components/providers/AuthProvider.jsx - FIXED TOKEN EXTRACTION
 "use client";
 
 import React, {
@@ -55,10 +55,9 @@ const authReducer = (state, action) => {
 
 export function AuthProvider({ children }) {
   const [state, dispatch] = useReducer(authReducer, initialState);
-  const initializationRef = useRef(false); // 🔥 GUARD against multiple init
+  const initializationRef = useRef(false);
 
   useEffect(() => {
-    // 🔥 PREVENT MULTIPLE INITIALIZATIONS
     if (initializationRef.current) {
       console.log("⚠️ AuthProvider already initialized, skipping...");
       return;
@@ -74,7 +73,25 @@ export function AuthProvider({ children }) {
         const token = localStorage.getItem("auth_token");
         const userStr = localStorage.getItem("user");
 
-        if (token && userStr) {
+        console.log("🔍 Checking localStorage:", {
+          hasToken: !!token,
+          hasUser: !!userStr,
+          tokenValue:
+            token === null
+              ? "NULL"
+              : token === "undefined"
+              ? "UNDEFINED_STRING"
+              : "VALID",
+        });
+
+        if (
+          token &&
+          token !== "undefined" &&
+          token !== "null" &&
+          token.length > 10 &&
+          userStr &&
+          userStr !== "undefined"
+        ) {
           const user = JSON.parse(userStr);
           console.log("✅ Found valid token and user, setting authenticated");
 
@@ -83,7 +100,9 @@ export function AuthProvider({ children }) {
             payload: { user },
           });
         } else {
-          console.log("❌ No valid auth data, staying unauthenticated");
+          console.log("❌ Invalid auth data found, clearing localStorage");
+          localStorage.removeItem("auth_token");
+          localStorage.removeItem("user");
           dispatch({ type: "INIT_COMPLETE" });
         }
       } catch (error) {
@@ -94,32 +113,107 @@ export function AuthProvider({ children }) {
       }
     };
 
-    // 🔥 NO BACKEND VERIFICATION ON INIT to prevent loops
     initAuth();
-  }, []); // 🔥 EMPTY DEPENDENCY ARRAY
+  }, []);
 
   const login = async (credentials) => {
     try {
+      console.log("🔐 AuthProvider: Starting login process");
       const response = await apiEndpoints.auth.login(credentials);
 
-      if (response?.success && response?.data) {
-        const { user, token } = response.data;
-        console.log(user, token);
+      console.log("🔐 AuthProvider: Login response received", response);
 
+      if (response?.success && response?.data) {
+        // 🔧 CRITICAL FIX: Handle both 'token' and 'accessToken' fields
+        const user = response.data.user;
+        const token = response.data.token || response.data.accessToken; // ✅ Support both formats
+
+        console.log("🔍 Validating login response data:");
+        console.log("  User:", user ? "EXISTS" : "MISSING");
+        console.log(
+          "  Token (from token field):",
+          response.data.token ? "EXISTS" : "MISSING"
+        );
+        console.log(
+          "  Token (from accessToken field):",
+          response.data.accessToken ? "EXISTS" : "MISSING"
+        );
+        console.log(
+          "  Final token:",
+          token ? `EXISTS (length: ${token.length})` : "MISSING"
+        );
+        console.log("  Token type:", typeof token);
+        console.log(
+          "  Token preview:",
+          token ? token.substring(0, 30) + "..." : "NULL"
+        );
+
+        // Validation checks
+        if (!user) {
+          throw new Error("Login response missing user data");
+        }
+
+        if (!token) {
+          throw new Error(
+            "Login response missing token (checked both 'token' and 'accessToken' fields)"
+          );
+        }
+
+        if (typeof token !== "string") {
+          throw new Error(
+            `Invalid token type: expected string, got ${typeof token}`
+          );
+        }
+
+        if (token.length < 20) {
+          throw new Error(`Token too short: ${token.length} characters`);
+        }
+
+        // Validate JWT format (should have 3 parts separated by dots)
+        const tokenParts = token.split(".");
+        if (tokenParts.length !== 3) {
+          throw new Error(
+            `Invalid JWT format: expected 3 parts, got ${tokenParts.length}`
+          );
+        }
+
+        console.log("✅ All validations passed, saving to localStorage");
+
+        // Save to localStorage ONLY after validation
         localStorage.setItem("auth_token", token);
         localStorage.setItem("user", JSON.stringify(user));
 
+        console.log("✅ Auth data saved successfully");
+
+        // Verify what was actually saved
+        const savedToken = localStorage.getItem("auth_token");
+        const savedUser = localStorage.getItem("user");
+
+        console.log("🔍 Verification of saved data:");
+        console.log(
+          "  Saved token:",
+          savedToken ? `${savedToken.substring(0, 30)}...` : "NULL"
+        );
+        console.log("  Saved user:", savedUser ? "EXISTS" : "NULL");
+
         dispatch({ type: "LOGIN_SUCCESS", payload: { user } });
 
-        return { success: true };
+        return { success: true, data: { user, token } };
+      } else {
+        console.error("❌ Invalid login response format:", response);
+        throw new Error("Invalid response format from server");
       }
     } catch (error) {
-      console.error("Login error:", error);
-      return { success: false, error: error.message };
+      console.error("❌ AuthProvider login error:", error);
+      return {
+        success: false,
+        error: error.message || "Login failed",
+      };
     }
   };
 
   const logout = () => {
+    console.log("🔐 AuthProvider: Logging out");
     localStorage.removeItem("auth_token");
     localStorage.removeItem("user");
     dispatch({ type: "LOGOUT" });
