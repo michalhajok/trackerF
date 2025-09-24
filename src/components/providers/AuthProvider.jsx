@@ -1,8 +1,4 @@
-/**
- * AuthProvider - FIXED EXPORTS
- * Consistent export structure
- */
-
+// src/components/providers/AuthProvider.jsx
 "use client";
 
 import React, {
@@ -14,219 +10,126 @@ import React, {
 } from "react";
 import { apiEndpoints } from "@/lib/api";
 
-// Auth Actions
-const AUTH_ACTIONS = {
-  LOGIN_START: "LOGIN_START",
-  LOGIN_SUCCESS: "LOGIN_SUCCESS",
-  LOGIN_ERROR: "LOGIN_ERROR",
-  LOGOUT: "LOGOUT",
-  SET_USER: "SET_USER",
-  SET_LOADING: "SET_LOADING",
-  INIT_COMPLETE: "INIT_COMPLETE",
-};
+const AuthContext = createContext();
 
-// Auth Reducer
-function authReducer(state, action) {
-  switch (action.type) {
-    case AUTH_ACTIONS.LOGIN_START:
-      return { ...state, loading: true, error: null };
-    case AUTH_ACTIONS.LOGIN_SUCCESS:
-      return {
-        ...state,
-        loading: false,
-        isAuthenticated: true,
-        user: action.payload.user,
-        token: action.payload.token,
-        error: null,
-        initialized: true,
-      };
-    case AUTH_ACTIONS.LOGIN_ERROR:
-      return {
-        ...state,
-        loading: false,
-        isAuthenticated: false,
-        user: null,
-        token: null,
-        error: action.payload,
-        initialized: true,
-      };
-    case AUTH_ACTIONS.LOGOUT:
-      return {
-        ...state,
-        loading: false,
-        isAuthenticated: false,
-        user: null,
-        token: null,
-        error: null,
-        initialized: true,
-      };
-    case AUTH_ACTIONS.SET_USER:
-      return { ...state, user: action.payload };
-    case AUTH_ACTIONS.SET_LOADING:
-      return { ...state, loading: action.payload };
-    case AUTH_ACTIONS.INIT_COMPLETE:
-      return { ...state, loading: false, initialized: true };
-    default:
-      return state;
-  }
-}
-
-// Initial State
 const initialState = {
-  loading: true,
-  isAuthenticated: false,
   user: null,
-  token: null,
+  isAuthenticated: false,
+  loading: true,
   error: null,
   initialized: false,
 };
 
-// Create Context
-const AuthContext = createContext();
+const authReducer = (state, action) => {
+  switch (action.type) {
+    case "INIT_START":
+      return { ...state, loading: true, initialized: false };
+    case "INIT_SUCCESS":
+      return {
+        ...state,
+        user: action.payload.user,
+        isAuthenticated: true,
+        loading: false,
+        initialized: true,
+      };
+    case "INIT_COMPLETE":
+      return { ...state, loading: false, initialized: true };
+    case "LOGIN_SUCCESS":
+      return {
+        ...state,
+        user: action.payload.user,
+        isAuthenticated: true,
+        loading: false,
+      };
+    case "LOGOUT":
+      return {
+        ...state,
+        user: null,
+        isAuthenticated: false,
+        loading: false,
+      };
+    default:
+      return state;
+  }
+};
 
-// Auth Provider Component
 export function AuthProvider({ children }) {
   const [state, dispatch] = useReducer(authReducer, initialState);
-  const isInitializing = useRef(false);
+  const initializationRef = useRef(false); // 🔥 GUARD against multiple init
 
   useEffect(() => {
-    if (isInitializing.current || state.initialized) return;
-    isInitializing.current = true;
+    // 🔥 PREVENT MULTIPLE INITIALIZATIONS
+    if (initializationRef.current) {
+      console.log("⚠️ AuthProvider already initialized, skipping...");
+      return;
+    }
 
-    const initializeAuth = async () => {
-      if (typeof window === "undefined") {
-        dispatch({ type: AUTH_ACTIONS.INIT_COMPLETE });
-        return;
-      }
+    initializationRef.current = true;
+    console.log("🔄 AuthProvider: SINGLE initialization starting");
 
-      console.log("🔄 AuthProvider: Initializing auth (ONE TIME ONLY)");
+    const initAuth = () => {
+      dispatch({ type: "INIT_START" });
 
       try {
         const token = localStorage.getItem("auth_token");
         const userStr = localStorage.getItem("user");
 
-        console.log("🔍 Found in localStorage:", {
-          hasToken: !!token,
-          hasUser: !!userStr,
-        });
-
-        if (token && userStr && isValidJWTFormat(token)) {
+        if (token && userStr) {
           const user = JSON.parse(userStr);
-          console.log(
-            "✅ Valid token and user found - setting authenticated state"
-          );
+          console.log("✅ Found valid token and user, setting authenticated");
 
           dispatch({
-            type: AUTH_ACTIONS.LOGIN_SUCCESS,
-            payload: { user, token },
+            type: "INIT_SUCCESS",
+            payload: { user },
           });
         } else {
-          console.log("❌ No valid token/user found - staying unauthenticated");
-          dispatch({ type: AUTH_ACTIONS.INIT_COMPLETE });
+          console.log("❌ No valid auth data, staying unauthenticated");
+          dispatch({ type: "INIT_COMPLETE" });
         }
       } catch (error) {
-        console.error("❌ Auth initialization error:", error);
+        console.error("❌ Auth init error:", error);
         localStorage.removeItem("auth_token");
         localStorage.removeItem("user");
-        dispatch({ type: AUTH_ACTIONS.INIT_COMPLETE });
+        dispatch({ type: "INIT_COMPLETE" });
       }
     };
 
-    initializeAuth();
-  }, []);
+    // 🔥 NO BACKEND VERIFICATION ON INIT to prevent loops
+    initAuth();
+  }, []); // 🔥 EMPTY DEPENDENCY ARRAY
 
   const login = async (credentials) => {
-    dispatch({ type: AUTH_ACTIONS.LOGIN_START });
-
     try {
-      console.log("🔐 Attempting login...");
       const response = await apiEndpoints.auth.login(credentials);
 
-      console.log("🔐 Login response received");
+      if (response?.success && response?.data) {
+        const { user, token } = response.data;
+        console.log(user, token);
 
-      if (response && response.success && response.data) {
-        let user, token;
+        localStorage.setItem("auth_token", token);
+        localStorage.setItem("user", JSON.stringify(user));
 
-        if (response.data.token) {
-          token = response.data.token;
-          user = response.data.user;
-        } else if (response.data.accessToken) {
-          token = response.data.accessToken;
-          user = response.data.user;
-        } else if (response.token) {
-          token = response.token;
-          user = response.user || response.data.user;
-        }
+        dispatch({ type: "LOGIN_SUCCESS", payload: { user } });
 
-        if (!user || !token) {
-          throw new Error("Missing user or token in response");
-        }
-
-        if (token && !isValidJWTFormat(token)) {
-          throw new Error("Invalid token format");
-        }
-
-        console.log("✅ Valid token received from backend");
-
-        if (typeof window !== "undefined") {
-          localStorage.setItem("auth_token", token);
-          localStorage.setItem("user", JSON.stringify(user));
-          console.log("✅ Token stored in localStorage");
-        }
-
-        dispatch({
-          type: AUTH_ACTIONS.LOGIN_SUCCESS,
-          payload: { user, token },
-        });
-
-        return { success: true, data: { user, token } };
-      } else {
-        throw new Error("Invalid response format");
+        return { success: true };
       }
     } catch (error) {
-      console.error("🔐 Login error:", error);
-      const errorMessage =
-        error.response?.data?.message || error.message || "Login failed";
-
-      dispatch({
-        type: AUTH_ACTIONS.LOGIN_ERROR,
-        payload: errorMessage,
-      });
-
-      return { success: false, error: errorMessage };
+      console.error("Login error:", error);
+      return { success: false, error: error.message };
     }
   };
 
-  const logout = async () => {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("auth_token");
-      localStorage.removeItem("user");
-    }
-    dispatch({ type: AUTH_ACTIONS.LOGOUT });
+  const logout = () => {
+    localStorage.removeItem("auth_token");
+    localStorage.removeItem("user");
+    dispatch({ type: "LOGOUT" });
   };
-
-  function isValidJWTFormat(token) {
-    if (!token || typeof token !== "string") return false;
-    const parts = token.split(".");
-    if (parts.length !== 3) return false;
-
-    try {
-      for (const part of parts) {
-        if (!part) return false;
-        atob(part.replace(/-/g, "+").replace(/_/g, "/"));
-      }
-      return true;
-    } catch (error) {
-      return false;
-    }
-  }
 
   const value = { ...state, login, logout };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-// ✅ NAMED EXPORT - useAuth hook
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
@@ -235,5 +138,4 @@ export function useAuth() {
   return context;
 }
 
-// ✅ DEFAULT EXPORT - AuthProvider
 export default AuthProvider;

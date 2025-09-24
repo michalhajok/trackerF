@@ -1,182 +1,267 @@
 /**
- * STANDALONE Dashboard Page - NO AuthProvider dependency
- * Direct localStorage access, no context needed
+ * Dashboard Page - HARDCODED TOKEN TEST
+ * Tests with hardcoded valid JWT to isolate problem
  */
 
 "use client";
 
 import React, { useState, useEffect } from "react";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { Alert } from "@/components/ui/Alert";
 
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
-  const [dashboardData, setDashboardData] = useState({
-    totalValue: "$124,563.89",
-    todayPL: "+$2,341.22",
-    openPositions: 23,
-    cashAvailable: "$15,234.50",
-  });
+  const [error, setError] = useState(null);
+  const [tokenDebug, setTokenDebug] = useState({});
 
   useEffect(() => {
-    const checkAuthAndLoadData = async () => {
+    const debugAndTest = async () => {
       try {
-        // Direct auth check - no context
-        const token = localStorage.getItem("auth_token");
-        const userStr = localStorage.getItem("user");
+        setLoading(true);
 
-        console.log("🔍 Dashboard: Checking auth directly");
+        // 1. DEBUG localStorage
+        const storedToken = localStorage.getItem("auth_token");
+        const storedUser = localStorage.getItem("user");
 
-        if (!token || !userStr) {
-          console.log("❌ No auth found - redirecting to login");
-          window.location.href = "/login";
-          return;
+        console.log("🔍 DEBUGGING TOKENS:");
+        console.log("Raw stored token:", storedToken);
+        console.log("Token type:", typeof storedToken);
+        console.log("Token is null:", storedToken === null);
+        console.log("Token is undefined:", storedToken === undefined);
+        console.log("Token length:", storedToken?.length);
+
+        const debug = {
+          stored: storedToken
+            ? `${storedToken.substring(0, 30)}...`
+            : "NULL/UNDEFINED",
+          type: typeof storedToken,
+          length: storedToken?.length || 0,
+          isNull: storedToken === null,
+          isUndefined: storedToken === undefined,
+        };
+
+        setTokenDebug(debug);
+
+        // 2. Parse user if available
+        if (storedUser) {
+          try {
+            const userData = JSON.parse(storedUser);
+            setUser(userData);
+            console.log("✅ User data:", userData.name);
+          } catch (e) {
+            console.error("❌ Failed to parse user:", e);
+          }
         }
 
-        const userData = JSON.parse(userStr);
-        setUser(userData);
+        // 3. TEST with different tokens
+        console.log("🔍 Testing different token scenarios...");
 
-        console.log("✅ Dashboard: User authenticated:", userData.name);
+        // Test 1: Use stored token (if exists and valid)
+        if (
+          storedToken &&
+          storedToken !== "undefined" &&
+          storedToken.length > 20
+        ) {
+          console.log("🔍 Test 1: Using stored token");
+          const result1 = await testApiCall("Stored Token", storedToken);
+          if (result1.success) {
+            console.log("✅ Stored token works!");
+            setLoading(false);
+            return;
+          }
+        }
 
-        // Simulate data loading
-        setTimeout(() => {
-          setLoading(false);
-        }, 1000);
+        // Test 2: Try to get fresh token via re-login API call
+        console.log("🔍 Test 2: Getting fresh token");
+        try {
+          // Simulate a fresh login to get new token
+          const loginResponse = await fetch("/api/proxy/auth/me", {
+            headers: {
+              Authorization: `Bearer ${storedToken || "test"}`,
+              "Content-Type": "application/json",
+            },
+          });
+
+          if (loginResponse.ok) {
+            console.log("✅ /auth/me worked with current token");
+          } else {
+            console.log("❌ /auth/me failed, token may be invalid");
+            setError("Token appears to be invalid. Please login again.");
+
+            // Clear invalid auth and redirect
+            setTimeout(() => {
+              localStorage.removeItem("auth_token");
+              localStorage.removeItem("user");
+              window.location.href = "/login";
+            }, 3000);
+          }
+        } catch (error) {
+          console.error("❌ Auth test failed:", error);
+          setError("Failed to validate authentication. Please login again.");
+        }
       } catch (error) {
-        console.error("❌ Dashboard auth check failed:", error);
-        localStorage.removeItem("auth_token");
-        localStorage.removeItem("user");
-        window.location.href = "/login";
+        console.error("❌ Debug error:", error);
+        setError("Failed to initialize dashboard: " + error.message);
+      } finally {
+        setLoading(false);
       }
     };
 
-    checkAuthAndLoadData();
+    debugAndTest();
   }, []);
 
+  // Test API call function
+  const testApiCall = async (testName, token) => {
+    try {
+      console.log(`🔍 ${testName} - Testing API call`);
+      console.log(
+        `🔍 ${testName} - Token:`,
+        token ? `${token.substring(0, 30)}...` : "MISSING"
+      );
+
+      const response = await fetch("/api/proxy/positions", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      console.log(`🔍 ${testName} - Response status:`, response.status);
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`✅ ${testName} - SUCCESS:`, data);
+        return { success: true, data };
+      } else {
+        const errorText = await response.text();
+        console.log(`❌ ${testName} - FAILED:`, response.status, errorText);
+        return { success: false, error: errorText, status: response.status };
+      }
+    } catch (error) {
+      console.error(`❌ ${testName} - ERROR:`, error);
+      return { success: false, error: error.message };
+    }
+  };
+
   if (loading) {
-    return <LoadingSpinner message="Loading dashboard..." />;
+    return <LoadingSpinner message="Debugging authentication..." />;
   }
 
   return (
     <div className="p-6">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900 mb-2">
-          Portfolio Dashboard
+          Dashboard - Token Debug Mode
         </h1>
         <p className="text-gray-600">Welcome back, {user?.name || "Trader"}!</p>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-          <div className="text-2xl font-bold text-gray-900 mb-2">
-            {dashboardData.totalValue}
+      {/* Token Debug Info */}
+      <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+        <h3 className="font-semibold mb-3">🔍 Token Debug Information:</h3>
+        <div className="space-y-2 text-sm">
+          <div>
+            <strong>Stored Token:</strong> {tokenDebug.stored}
           </div>
-          <div className="text-sm text-gray-600">Total Portfolio</div>
-          <div className="flex items-center mt-3">
-            <div className="flex items-center text-green-600 text-sm font-medium">
-              <svg
-                className="w-4 h-4 mr-1"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M3.293 9.707a1 1 0 010-1.414l6-6a1 1 0 011.414 0l6 6a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L4.707 9.707a1 1 0 01-1.414 0z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              +12.5%
-            </div>
+          <div>
+            <strong>Type:</strong> {tokenDebug.type}
           </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-          <div className="text-2xl font-bold text-green-600 mb-2">
-            {dashboardData.todayPL}
+          <div>
+            <strong>Length:</strong> {tokenDebug.length}
           </div>
-          <div className="text-sm text-gray-600">Todays P&L</div>
-          <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium mt-3 inline-block">
-            Profitable Day
+          <div>
+            <strong>Is Null:</strong> {tokenDebug.isNull ? "YES" : "NO"}
           </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-          <div className="text-2xl font-bold text-gray-900 mb-2">
-            {dashboardData.openPositions}
-          </div>
-          <div className="text-sm text-gray-600">Open Positions</div>
-          <div className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium mt-3 inline-block">
-            Active
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-          <div className="text-2xl font-bold text-gray-900 mb-2">
-            {dashboardData.cashAvailable}
-          </div>
-          <div className="text-sm text-gray-600">Cash Available</div>
-          <div className="bg-cyan-100 text-cyan-700 px-3 py-1 rounded-full text-sm font-medium mt-3 inline-block">
-            Ready to Invest
+          <div>
+            <strong>Is Undefined:</strong>{" "}
+            {tokenDebug.isUndefined ? "YES" : "NO"}
           </div>
         </div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Quick Actions
-          </h2>
-          <div className="space-y-3">
-            <a
-              href="/dashboard/positions"
-              className="w-full bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors block text-center"
-            >
-              View Positions
-            </a>
-            <a
-              href="/dashboard/analytics"
-              className="w-full bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors block text-center"
-            >
-              View Analytics
-            </a>
-            <a
-              href="/dashboard/orders"
-              className="w-full bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors block text-center"
-            >
-              View Orders
-            </a>
-            <a
-              href="/dashboard/import"
-              className="w-full bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors block text-center"
-            >
-              Import Data
-            </a>
-          </div>
-        </div>
+      {/* Error Alert */}
+      {error && (
+        <Alert type="error" className="mb-6" title="Authentication Error">
+          {error}
+        </Alert>
+      )}
 
-        <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Account</h2>
-          <div className="space-y-4">
-            <div className="p-3 bg-gray-50 rounded-lg">
-              <div className="font-medium text-gray-900">{user?.name}</div>
-              <div className="text-sm text-gray-500">{user?.email}</div>
-              <div className="text-sm text-gray-500">Role: {user?.role}</div>
-            </div>
+      {/* Debug Actions */}
+      <div className="mb-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <h3 className="font-semibold mb-3">🔧 Debug Actions:</h3>
+        <div className="space-x-2">
+          <button
+            onClick={() => {
+              const token = localStorage.getItem("auth_token");
+              console.log("Manual token check:", token);
+              alert(
+                `Token: ${
+                  token ? token.substring(0, 50) + "..." : "NULL/UNDEFINED"
+                }`
+              );
+            }}
+            className="px-3 py-1 bg-blue-500 text-white text-sm rounded"
+          >
+            Check Token
+          </button>
 
-            <button
-              onClick={() => {
-                localStorage.removeItem("auth_token");
-                localStorage.removeItem("user");
-                window.location.href = "/login";
-              }}
-              className="w-full bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-            >
-              Logout
-            </button>
-          </div>
+          <button
+            onClick={async () => {
+              const token = localStorage.getItem("auth_token");
+              if (token && token !== "undefined") {
+                await testApiCall("Manual Test", token);
+              } else {
+                alert("No valid token found!");
+              }
+            }}
+            className="px-3 py-1 bg-green-500 text-white text-sm rounded"
+          >
+            Test API Call
+          </button>
+
+          <button
+            onClick={() => {
+              localStorage.removeItem("auth_token");
+              localStorage.removeItem("user");
+              window.location.href = "/login";
+            }}
+            className="px-3 py-1 bg-red-500 text-white text-sm rounded"
+          >
+            Clear & Re-login
+          </button>
         </div>
+      </div>
+
+      {/* Mock Dashboard */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+          <div className="text-2xl font-bold text-gray-900 mb-2">
+            $124,563.89
+          </div>
+          <div className="text-sm text-gray-600">Total Portfolio (Mock)</div>
+        </div>
+        <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+          <div className="text-2xl font-bold text-green-600 mb-2">
+            +$2,341.22
+          </div>
+          <div className="text-sm text-gray-600">Todays P&L (Mock)</div>
+        </div>
+        <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+          <div className="text-2xl font-bold text-gray-900 mb-2">23</div>
+          <div className="text-sm text-gray-600">Open Positions (Mock)</div>
+        </div>
+        <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+          <div className="text-2xl font-bold text-gray-900 mb-2">
+            $15,234.50
+          </div>
+          <div className="text-sm text-gray-600">Cash Available (Mock)</div>
+        </div>
+      </div>
+
+      <div className="mt-8 text-center text-gray-500">
+        <p>Dashboard running in TOKEN DEBUG MODE</p>
+        <p>Check console for detailed token analysis</p>
       </div>
     </div>
   );
