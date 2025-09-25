@@ -32,17 +32,13 @@ export default function DashboardPage() {
         const token = localStorage.getItem("auth_token");
         const userStr = localStorage.getItem("user");
 
-        console.log("🔍 Dashboard: Checking auth");
-
         if (!token || !userStr) {
-          console.log("❌ No auth found - redirecting");
           window.location.href = "/login";
           return;
         }
 
         const userData = JSON.parse(userStr);
         setUser(userData);
-        console.log("✅ Dashboard: User authenticated:", userData.name);
 
         // 2. Load data using ONLY existing endpoints
         await loadDashboardData(token);
@@ -60,7 +56,6 @@ export default function DashboardPage() {
   const loadDashboardData = async (token) => {
     try {
       setDataLoading(true);
-      console.log("🔍 Loading data from existing endpoints only...");
 
       // ONLY use /positions endpoint that exists
       const response = await fetch("/api/proxy/positions", {
@@ -70,12 +65,8 @@ export default function DashboardPage() {
         },
       });
 
-      console.log("🔍 Positions API response:", response.status);
-
       if (response.ok) {
         const data = await response.json();
-        console.log("✅ Positions data:", data);
-
         let positions = [];
         if (data?.success && data?.data && Array.isArray(data.data)) {
           positions = data.data;
@@ -109,7 +100,6 @@ export default function DashboardPage() {
           positions: openPositions.slice(0, 5), // Show first 5 positions
         };
 
-        console.log("✅ Calculated dashboard data:", calculatedData);
         setDashboardData(calculatedData);
       } else {
         console.warn("⚠️ Positions API failed, using mock data");
