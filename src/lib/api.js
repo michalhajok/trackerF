@@ -1,6 +1,6 @@
 /**
- * Complete API Client for Portfolio Manager
- * All endpoints with enhanced debugging and error handling
+ * ROZSZERZONA WERSJA API CLIENT dla Portfolio Manager
+ * Dodano wszystkie nowe endpoints po implementacji nowego backendu
  */
 
 import axios from "axios";
@@ -213,9 +213,9 @@ function generateRequestId() {
   return Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
 }
 
-// COMPLETE API ENDPOINTS
+// COMPLETE API ENDPOINTS - EXISTING + ALL NEW ENDPOINTS
 export const apiEndpoints = {
-  // 🔐 AUTHENTICATION ENDPOINTS
+  // 🔐 AUTHENTICATION ENDPOINTS (EXISTING)
   auth: {
     login: async (credentials) => {
       console.log("🔐 Attempting login with:", { email: credentials.email });
@@ -249,7 +249,7 @@ export const apiEndpoints = {
     updateProfile: (data) => apiClient.put("/auth/profile", data),
   },
 
-  // 📈 POSITIONS ENDPOINTS
+  // 📈 POSITIONS ENDPOINTS (EXISTING)
   positions: {
     // Get all positions with filtering
     getAll: (params = {}) => {
@@ -306,7 +306,7 @@ export const apiEndpoints = {
     },
   },
 
-  // 💰 CASH OPERATIONS ENDPOINTS
+  // 💰 CASH OPERATIONS ENDPOINTS (EXISTING)
   cashOperations: {
     // Get all cash operations
     getAll: (params = {}) => {
@@ -339,25 +339,31 @@ export const apiEndpoints = {
     },
 
     // Get operations by type
-    getByType: (type) => {
-      console.log("💰 Getting cash operations by type:", type);
-      return apiClient.get("/cash-operations", { params: { type } });
+    getByType: (type, params = {}) => {
+      console.log("💰 Getting cash operations by type:", type, params);
+      return apiClient.get(`/cash-operations/type/${type}`, { params });
     },
 
     // Get cash balance
-    getBalance: () => {
-      console.log("💰 Getting cash balance");
-      return apiClient.get("/cash-operations/balance");
+    getBalance: (params = {}) => {
+      console.log("💰 Getting cash balance:", params);
+      return apiClient.get("/cash-operations/balance", { params });
     },
 
-    // Get cash summary
-    getSummary: (params = {}) => {
-      console.log("💰 Getting cash summary:", params);
-      return apiClient.get("/cash-operations/summary", { params });
+    // Get cash flow summary
+    getCashFlow: (params = {}) => {
+      console.log("💰 Getting cash flow summary:", params);
+      return apiClient.get("/cash-operations/cash-flow", { params });
+    },
+
+    // Get monthly summary
+    getMonthlySummary: (year, month) => {
+      console.log("💰 Getting monthly summary:", year, month);
+      return apiClient.get(`/cash-operations/monthly/${year}/${month}`);
     },
   },
 
-  // 📋 PENDING ORDERS ENDPOINTS
+  // 📋 PENDING ORDERS ENDPOINTS (EXISTING)
   pendingOrders: {
     // Get all pending orders
     getAll: (params = {}) => {
@@ -414,7 +420,7 @@ export const apiEndpoints = {
     },
   },
 
-  // 📊 ANALYTICS ENDPOINTS
+  // 📊 ANALYTICS ENDPOINTS (EXISTING)
   analytics: {
     // Get dashboard data
     getDashboard: (params = {}) => {
@@ -465,7 +471,7 @@ export const apiEndpoints = {
     },
   },
 
-  // 📁 FILE IMPORT ENDPOINTS
+  // 📁 FILE IMPORT ENDPOINTS (EXISTING)
   fileImport: {
     // Upload file
     upload: (file, options = {}) => {
@@ -522,7 +528,368 @@ export const apiEndpoints = {
     },
   },
 
-  // 🏥 HEALTH & SYSTEM ENDPOINTS
+  // ====================================================================
+  // 🚀 NOWE ENDPOINTS - DODANE PO IMPLEMENTACJI ROZSZERZONEGO BACKENDU
+  // ====================================================================
+
+  // 🔔 NOTIFICATIONS ENDPOINTS - ZUPEŁNIE NOWE!
+  notifications: {
+    // Get all notifications
+    getAll: (params = {}) => {
+      console.log("🔔 Getting notifications with params:", params);
+      return apiClient.get("/notifications", { params });
+    },
+
+    // Get notification by ID
+    getById: (id) => {
+      console.log("🔔 Getting notification by ID:", id);
+      return apiClient.get(`/notifications/${id}`);
+    },
+
+    // Create new notification
+    create: (data) => {
+      console.log("🔔 Creating notification:", data);
+      return apiClient.post("/notifications", data);
+    },
+
+    // Mark notification as read
+    markAsRead: (id) => {
+      console.log("🔔 Marking notification as read:", id);
+      return apiClient.put(`/notifications/${id}/read`);
+    },
+
+    // Mark multiple notifications as read
+    markMultipleAsRead: (notificationIds) => {
+      console.log(
+        "🔔 Marking multiple notifications as read:",
+        notificationIds
+      );
+      return apiClient.put("/notifications/mark-read", { notificationIds });
+    },
+
+    // Delete notification
+    delete: (id) => {
+      console.log("🔔 Deleting notification:", id);
+      return apiClient.delete(`/notifications/${id}`);
+    },
+
+    // Get unread notifications
+    getUnread: (params = {}) => {
+      console.log("🔔 Getting unread notifications:", params);
+      return apiClient.get("/notifications/unread", { params });
+    },
+
+    // Get notifications by type
+    getByType: (type, params = {}) => {
+      console.log("🔔 Getting notifications by type:", type, params);
+      return apiClient.get(`/notifications/type/${type}`, { params });
+    },
+
+    // Record notification click
+    recordClick: (id) => {
+      console.log("🔔 Recording notification click:", id);
+      return apiClient.post(`/notifications/${id}/click`);
+    },
+
+    // Create system notification (Admin only)
+    createSystem: (data) => {
+      console.log("🔔 Creating system notification:", data);
+      return apiClient.post("/notifications/system", data);
+    },
+
+    // Cleanup old notifications (Admin only)
+    cleanup: (params = {}) => {
+      console.log("🔔 Cleaning up old notifications:", params);
+      return apiClient.delete("/notifications/cleanup", { params });
+    },
+  },
+
+  // 📊 WATCHLISTS ENDPOINTS - ZUPEŁNIE NOWE!
+  watchlists: {
+    // Get all watchlists
+    getAll: (params = {}) => {
+      console.log("📊 Getting watchlists:", params);
+      return apiClient.get("/watchlists", { params });
+    },
+
+    // Get watchlist by ID
+    getById: (id) => {
+      console.log("📊 Getting watchlist by ID:", id);
+      return apiClient.get(`/watchlists/${id}`);
+    },
+
+    // Create new watchlist
+    create: (data) => {
+      console.log("📊 Creating watchlist:", data);
+      return apiClient.post("/watchlists", data);
+    },
+
+    // Update watchlist
+    update: (id, data) => {
+      console.log("📊 Updating watchlist:", id, data);
+      return apiClient.put(`/watchlists/${id}`, data);
+    },
+
+    // Delete watchlist
+    delete: (id) => {
+      console.log("📊 Deleting watchlist:", id);
+      return apiClient.delete(`/watchlists/${id}`);
+    },
+
+    // Add symbol to watchlist
+    addSymbol: (id, symbolData) => {
+      console.log("📊 Adding symbol to watchlist:", id, symbolData);
+      return apiClient.post(`/watchlists/${id}/symbols`, symbolData);
+    },
+
+    // Remove symbol from watchlist
+    removeSymbol: (id, symbol) => {
+      console.log("📊 Removing symbol from watchlist:", id, symbol);
+      return apiClient.delete(`/watchlists/${id}/symbols/${symbol}`);
+    },
+
+    // Add price alert to symbol
+    addPriceAlert: (id, symbol, alertData) => {
+      console.log("📊 Adding price alert:", id, symbol, alertData);
+      return apiClient.post(
+        `/watchlists/${id}/symbols/${symbol}/alerts`,
+        alertData
+      );
+    },
+
+    // Remove price alert
+    removePriceAlert: (id, symbol, alertId) => {
+      console.log("📊 Removing price alert:", id, symbol, alertId);
+      return apiClient.delete(
+        `/watchlists/${id}/symbols/${symbol}/alerts/${alertId}`
+      );
+    },
+
+    // Update market data for watchlist
+    updateMarketData: (id, marketData) => {
+      console.log("📊 Updating watchlist market data:", id, marketData);
+      return apiClient.put(`/watchlists/${id}/market-data`, { marketData });
+    },
+
+    // Get public watchlists
+    getPublic: (params = {}) => {
+      console.log("📊 Getting public watchlists:", params);
+      return apiClient.get("/watchlists/public", { params });
+    },
+
+    // Get watchlist statistics
+    getStatistics: () => {
+      console.log("📊 Getting watchlist statistics");
+      return apiClient.get("/watchlists/statistics");
+    },
+  },
+
+  // 💹 MARKET DATA ENDPOINTS - ZUPEŁNIE NOWE!
+  marketData: {
+    // Get market data for symbol
+    getSymbol: (symbol) => {
+      console.log("💹 Getting market data for symbol:", symbol);
+      return apiClient.get(`/market-data/${symbol}`);
+    },
+
+    // Get batch market data for multiple symbols
+    getBatch: (symbols) => {
+      console.log("💹 Getting batch market data:", symbols);
+      return apiClient.post("/market-data/batch", { symbols });
+    },
+
+    // Update market data for symbol (Admin/System)
+    update: (symbol, data) => {
+      console.log("💹 Updating market data:", symbol, data);
+      return apiClient.put(`/market-data/${symbol}`, data);
+    },
+
+    // Bulk update market data (Admin/System)
+    bulkUpdate: (priceUpdates) => {
+      console.log("💹 Bulk updating market data:", priceUpdates);
+      return apiClient.put("/market-data/bulk-update", { priceUpdates });
+    },
+
+    // Get active symbols
+    getActive: (params = {}) => {
+      console.log("💹 Getting active symbols:", params);
+      return apiClient.get("/market-data/symbols", { params });
+    },
+
+    // Get market summary
+    getSummary: (params = {}) => {
+      console.log("💹 Getting market summary:", params);
+      return apiClient.get("/market-data/summary", { params });
+    },
+
+    // Get top movers
+    getTopMovers: (params = {}) => {
+      console.log("💹 Getting top movers:", params);
+      return apiClient.get("/market-data/movers", { params });
+    },
+
+    // Search symbols
+    search: (query, params = {}) => {
+      console.log("💹 Searching symbols:", query, params);
+      return apiClient.get("/market-data/search", {
+        params: { q: query, ...params },
+      });
+    },
+
+    // Get historical data for symbol
+    getHistorical: (symbol, params = {}) => {
+      console.log("💹 Getting historical data:", symbol, params);
+      return apiClient.get(`/market-data/${symbol}/history`, { params });
+    },
+
+    // Get symbols by sector
+    getBySector: (sector, params = {}) => {
+      console.log("💹 Getting symbols by sector:", sector, params);
+      return apiClient.get(`/market-data/sectors/${sector}`, { params });
+    },
+
+    // Record data source error (System)
+    recordError: (symbol, errorMessage) => {
+      console.log("💹 Recording market data error:", symbol, errorMessage);
+      return apiClient.post(`/market-data/${symbol}/error`, { errorMessage });
+    },
+
+    // Get symbols needing update (System)
+    getNeedingUpdate: () => {
+      console.log("💹 Getting symbols needing update");
+      return apiClient.get("/market-data/update-needed");
+    },
+
+    // Create new market data entry (Admin)
+    create: (data) => {
+      console.log("💹 Creating market data entry:", data);
+      return apiClient.post("/market-data", data);
+    },
+
+    // Cleanup old data (Admin)
+    cleanup: (params = {}) => {
+      console.log("💹 Cleaning up old market data:", params);
+      return apiClient.delete("/market-data/cleanup", { params });
+    },
+  },
+
+  // 📄 REPORTS ENDPOINTS - ZUPEŁNIE NOWE!
+  reports: {
+    // Get all reports
+    getAll: (params = {}) => {
+      console.log("📄 Getting reports:", params);
+      return apiClient.get("/reports", { params });
+    },
+
+    // Get report by ID
+    getById: (id) => {
+      console.log("📄 Getting report by ID:", id);
+      return apiClient.get(`/reports/${id}`);
+    },
+
+    // Create new report
+    create: (data) => {
+      console.log("📄 Creating report:", data);
+      return apiClient.post("/reports", data);
+    },
+
+    // Download report file
+    download: (id) => {
+      console.log("📄 Downloading report:", id);
+      return apiClient.get(`/reports/${id}/download`, {
+        responseType: "blob", // Important for file downloads
+      });
+    },
+
+    // Create tax report
+    createTax: (data) => {
+      console.log("📄 Creating tax report:", data);
+      return apiClient.post("/reports/tax", data);
+    },
+
+    // Get scheduled reports (Admin)
+    getScheduled: () => {
+      console.log("📄 Getting scheduled reports");
+      return apiClient.get("/reports/scheduled");
+    },
+
+    // Get report status/progress
+    getStatus: (id) => {
+      console.log("📄 Getting report status:", id);
+      return apiClient.get(`/reports/${id}/status`);
+    },
+
+    // Delete report
+    delete: (id) => {
+      console.log("📄 Deleting report:", id);
+      return apiClient.delete(`/reports/${id}`);
+    },
+
+    // Retry failed report generation
+    retry: (id) => {
+      console.log("📄 Retrying report generation:", id);
+      return apiClient.post(`/reports/${id}/retry`);
+    },
+  },
+
+  // 🔒 AUDIT LOGS ENDPOINTS - ZUPEŁNIE NOWE!
+  auditLogs: {
+    // Get all audit logs (Admin only)
+    getAll: (params = {}) => {
+      console.log("🔒 Getting audit logs:", params);
+      return apiClient.get("/audit-logs", { params });
+    },
+
+    // Get user activity summary
+    getUserActivity: (userId, params = {}) => {
+      console.log("🔒 Getting user activity:", userId, params);
+      return apiClient.get(`/audit-logs/user/${userId}/summary`, { params });
+    },
+
+    // Get system activity overview (Admin)
+    getSystemActivity: (params = {}) => {
+      console.log("🔒 Getting system activity:", params);
+      return apiClient.get("/audit-logs/system/activity", { params });
+    },
+
+    // Get suspicious activities (Admin)
+    getSuspicious: (params = {}) => {
+      console.log("🔒 Getting suspicious activities:", params);
+      return apiClient.get("/audit-logs/suspicious", { params });
+    },
+
+    // Get failed login attempts (Admin)
+    getFailedLogins: (params = {}) => {
+      console.log("🔒 Getting failed logins:", params);
+      return apiClient.get("/audit-logs/failed-logins", { params });
+    },
+
+    // Get logs by IP address (Admin)
+    getByIP: (ipAddress, params = {}) => {
+      console.log("🔒 Getting logs by IP:", ipAddress, params);
+      return apiClient.get(`/audit-logs/ip/${ipAddress}`, { params });
+    },
+
+    // Detect unusual activity for user
+    detectUnusual: (userId, params = {}) => {
+      console.log("🔒 Detecting unusual activity:", userId, params);
+      return apiClient.get(`/audit-logs/user/${userId}/unusual`, { params });
+    },
+
+    // Export compliance logs (Admin)
+    exportCompliance: (data) => {
+      console.log("🔒 Exporting compliance logs:", data);
+      return apiClient.post("/audit-logs/export-compliance", data);
+    },
+
+    // Cleanup old logs (Admin)
+    cleanup: () => {
+      console.log("🔒 Cleaning up old audit logs");
+      return apiClient.delete("/audit-logs/cleanup");
+    },
+  },
+
+  // 🏥 HEALTH & SYSTEM ENDPOINTS (EXISTING - ROZSZERZONE)
   system: {
     // Get system health
     getHealth: () => {
@@ -541,9 +908,40 @@ export const apiEndpoints = {
       console.log("🏥 Getting user statistics");
       return apiClient.get("/analytics/user-stats");
     },
+
+    // Health check for specific services
+    checkNotifications: () => {
+      console.log("🏥 Checking notifications health");
+      return apiClient.get("/notifications/health");
+    },
+
+    checkWatchlists: () => {
+      console.log("🏥 Checking watchlists health");
+      return apiClient.get("/watchlists/health");
+    },
+
+    checkMarketData: () => {
+      console.log("🏥 Checking market data health");
+      return apiClient.get("/market-data/health");
+    },
+
+    checkReports: () => {
+      console.log("🏥 Checking reports health");
+      return apiClient.get("/reports/health");
+    },
+
+    checkAuditLogs: () => {
+      console.log("🏥 Checking audit logs health");
+      return apiClient.get("/audit-logs/health");
+    },
+
+    checkCashOperations: () => {
+      console.log("🏥 Checking cash operations health");
+      return apiClient.get("/cash-operations/health");
+    },
   },
 
-  // 🔍 SEARCH ENDPOINTS
+  // 🔍 SEARCH ENDPOINTS (EXISTING - ROZSZERZONE)
   search: {
     // Global search
     global: (query, params = {}) => {
@@ -551,10 +949,10 @@ export const apiEndpoints = {
       return apiClient.get("/search", { params: { q: query, ...params } });
     },
 
-    // Search symbols
+    // Search symbols (enhanced with market data)
     symbols: (query, params = {}) => {
       console.log("🔍 Symbol search:", query, params);
-      return apiClient.get("/search/symbols", {
+      return apiClient.get("/market-data/search", {
         params: { q: query, ...params },
       });
     },
@@ -566,39 +964,64 @@ export const apiEndpoints = {
         params: { q: query, ...params },
       });
     },
+
+    // Search notifications
+    notifications: (query, params = {}) => {
+      console.log("🔍 Notification search:", query, params);
+      return apiClient.get("/notifications", {
+        params: { q: query, ...params },
+      });
+    },
+
+    // Search watchlists
+    watchlists: (query, params = {}) => {
+      console.log("🔍 Watchlist search:", query, params);
+      return apiClient.get("/watchlists", {
+        params: { q: query, ...params },
+      });
+    },
+
+    // Search reports
+    reports: (query, params = {}) => {
+      console.log("🔍 Report search:", query, params);
+      return apiClient.get("/reports", {
+        params: { q: query, ...params },
+      });
+    },
+  },
+};
+
+// Helper functions for common operations
+export const apiHelpers = {
+  // Format API error for user display
+  formatError: (error) => {
+    if (error.message) return error.message;
+    if (error.data?.message) return error.data.message;
+    if (error.data?.error) return error.data.error;
+    return "An unexpected error occurred";
   },
 
-  // 📱 NOTIFICATIONS ENDPOINTS
-  notifications: {
-    // Get all notifications
-    getAll: (params = {}) => {
-      console.log("📱 Getting notifications:", params);
-      return apiClient.get("/notifications", { params });
-    },
+  // Check if error is authentication related
+  isAuthError: (error) => {
+    return error.status === 401 || error.type === "auth_error";
+  },
 
-    // Mark as read
-    markAsRead: (id) => {
-      console.log("📱 Marking notification as read:", id);
-      return apiClient.patch(`/notifications/${id}/read`);
-    },
+  // Check if error is network related
+  isNetworkError: (error) => {
+    return error.type === "network_error";
+  },
 
-    // Mark all as read
-    markAllAsRead: () => {
-      console.log("📱 Marking all notifications as read");
-      return apiClient.patch("/notifications/read-all");
-    },
+  // Check if error is validation related
+  isValidationError: (error) => {
+    return error.status === 422 || error.status === 400;
+  },
 
-    // Delete notification
-    delete: (id) => {
-      console.log("📱 Deleting notification:", id);
-      return apiClient.delete(`/notifications/${id}`);
-    },
-
-    // Get unread count
-    getUnreadCount: () => {
-      console.log("📱 Getting unread notification count");
-      return apiClient.get("/notifications/unread-count");
-    },
+  // Get validation errors array
+  getValidationErrors: (error) => {
+    if (error.data?.errors && Array.isArray(error.data.errors)) {
+      return error.data.errors;
+    }
+    return [];
   },
 };
 
