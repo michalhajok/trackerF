@@ -26,10 +26,10 @@ import {
   useCreateWatchlist,
   useDeleteWatchlist,
   useImportWatchlist,
-} from "../../../hooks/useWatchlists";
+} from "@/hooks/useWatchlists";
 import WatchlistCard, {
   WatchlistGrid,
-} from "../../../components/watchlists/WatchlistCard";
+} from "@/components/features/Watchlist/WatchlistCard";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { useRouter } from "next/navigation";

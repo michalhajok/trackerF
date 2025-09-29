@@ -122,29 +122,3 @@ frontend/
 ├── styles/ # Additional styles
 │ ├── components.css # Component-specific styles
 │ └── utilities.css # Utility classes
-
----
-
-❌ /dashboard/market-data - market data browser
-❌ /dashboard/market-data/symbols - symbol explorer  
-❌ /dashboard/market-data/sectors - sector analysis
-❌ Market data components (PriceChart, SymbolCard)
-❌ Real-time price updates integration
-❌ Historical data charts
-
----
-
-❌ /dashboard/watchlists - watchlist management
-❌ /dashboard/watchlists/[id] - pojedyncza watchlista
-❌ /dashboard/watchlists/create - tworzenie nowej
-❌ WatchlistCard, WatchlistTable components
-❌ Price alerts management interface
-❌ Symbol search i dodawanie do watchlisty
-
----
-
-❌ /dashboard/notifications - strona główna powiadomień  
-❌ Notification components (NotificationItem, NotificationList)
-❌ Real-time notifications (toasts, badges)
-❌ Notification settings page
-❌ Push notification service worker

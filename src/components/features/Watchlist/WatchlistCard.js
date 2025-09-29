@@ -25,8 +25,8 @@ import {
   useDeleteWatchlist,
   useUpdateWatchlist,
   useWatchlistStats,
-} from "../../hooks/useWatchlist";
-import { useBatchMarketData } from "../../hooks/useMarketData";
+} from "@/hooks/useWatchlists";
+import { useBatchMarketData } from "@/hooks/useMarketData";
 import { formatDistanceToNow } from "date-fns";
 
 const WatchlistCard = ({

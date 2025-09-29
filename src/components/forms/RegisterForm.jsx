@@ -65,7 +65,9 @@ export default function RegisterForm() {
 
   const onSubmit = async (data) => {
     try {
-      clearError();
+      // clearError();
+
+      console.log("Registering user with data:", data);
 
       const result = await registerUser({
         name: data.name,
