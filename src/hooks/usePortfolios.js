@@ -17,7 +17,31 @@ export function usePortfolios() {
 export function usePortfolioStats() {
   return useQuery({
     queryKey: ["portfolioStats"],
-    queryFn: () => api.get("/portfolios/stats").then((res) => res.data.data),
+    queryFn: async () => {
+      const res = await api.get("/portfolios/stats");
+      // Zakładamy, że backend zwraca { success: true, data: { … } }
+      return (
+        res.data?.data || {
+          totalPortfolios: 0,
+          totalValue: 0,
+          totalPL: 0,
+          totalOpenPositions: 0,
+          totalClosedPositions: 0,
+          brokerStats: {},
+          totalPLPercent: 0,
+        }
+      );
+    },
+    // Opcjonalnie, możesz ustawić placeholderData:
+    placeholderData: {
+      totalPortfolios: 0,
+      totalValue: 0,
+      totalPL: 0,
+      totalOpenPositions: 0,
+      totalClosedPositions: 0,
+      brokerStats: {},
+      totalPLPercent: 0,
+    },
   });
 }
 

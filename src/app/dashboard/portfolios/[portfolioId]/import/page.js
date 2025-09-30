@@ -42,7 +42,7 @@ export default function ImportPage() {
         <h2 className="text-xl font-semibold text-gray-900 mb-2">
           Portfolio nie znaleziony
         </h2>
-        <Button asChild>
+        <Button>
           <Link href="/dashboard/portfolios">Powrót do listy portfeli</Link>
         </Button>
       </div>
@@ -322,8 +322,7 @@ export default function ImportPage() {
               onClick={handleFileImport}
               disabled={!selectedFile || importing}
               loading={importing}
-              //   className="w-full"
-              variant="secondary"
+              variant="outlinePrimary"
             >
               {importing ? "Importowanie..." : "Importuj dane"}
             </Button>
@@ -407,7 +406,7 @@ export default function ImportPage() {
             <p className="text-gray-600 mb-4">
               Przejdź do sekcji pozycji, aby dodać transakcje ręcznie.
             </p>
-            <Button asChild>
+            <Button>
               <Link href={`/dashboard/portfolios/${portfolioId}/positions`}>
                 Dodaj pozycje ręcznie
               </Link>
@@ -441,7 +440,7 @@ export default function ImportPage() {
                 </p>
               )}
             </div>
-            <Button asChild className="mt-4">
+            <Button className="mt-4">
               <Link href={`/dashboard/portfolios/${portfolioId}/positions`}>
                 Zobacz zaimportowane pozycje
               </Link>
@@ -463,7 +462,7 @@ export default function ImportPage() {
 
       {/* Navigation */}
       <div className="flex justify-end">
-        <Button variant="outline" asChild>
+        <Button variant="outline">
           <Link href={`/dashboard/portfolios/${portfolioId}`}>
             Powrót do portfela
           </Link>

@@ -37,7 +37,7 @@ export default function PortfolioDashboardPage() {
         <p className="text-gray-600 mb-4">
           Wybrany portfel nie istnieje lub został usunięty.
         </p>
-        <Button asChild>
+        <Button>
           <Link href="/dashboard/portfolios">Powrót do listy portfeli</Link>
         </Button>
       </div>
@@ -67,13 +67,13 @@ export default function PortfolioDashboardPage() {
           </div>
         </div>
         <div className="flex space-x-2 mt-4 sm:mt-0">
-          <Button variant="outline" asChild>
+          <Button variant="outline">
             <Link href={`/dashboard/portfolios/${portfolioId}/edit`}>
               <Settings className="w-4 h-4 mr-2" />
               Edytuj
             </Link>
           </Button>
-          <Button variant="outline" asChild>
+          <Button variant="outline">
             <Link href={`/dashboard/portfolios/${portfolioId}/import`}>
               <Upload className="w-4 h-4 mr-2" />
               Import
@@ -170,19 +170,19 @@ export default function PortfolioDashboardPage() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Button asChild className="h-20 flex-col">
+            <Button className="h-20 flex-col">
               <Link href={`/dashboard/portfolios/${portfolioId}/positions`}>
                 <Activity className="w-6 h-6 mb-2" />
                 <span>Pozycje</span>
               </Link>
             </Button>
-            <Button asChild variant="outline" className="h-20 flex-col">
+            <Button variant="outline" className="h-20 flex-col">
               <Link href={`/dashboard/portfolios/${portfolioId}/analytics`}>
                 <BarChart3 className="w-6 h-6 mb-2" />
                 <span>Analityka</span>
               </Link>
             </Button>
-            <Button asChild variant="outline" className="h-20 flex-col">
+            <Button variant="outline" className="h-20 flex-col">
               <Link
                 href={`/dashboard/portfolios/${portfolioId}/cash-operations`}
               >
@@ -190,7 +190,7 @@ export default function PortfolioDashboardPage() {
                 <span>Operacje</span>
               </Link>
             </Button>
-            <Button asChild variant="outline" className="h-20 flex-col">
+            <Button variant="outline" className="h-20 flex-col">
               <Link href={`/dashboard/portfolios/${portfolioId}/watchlists`}>
                 <PieChart className="w-6 h-6 mb-2" />
                 <span>Watchlisty</span>
