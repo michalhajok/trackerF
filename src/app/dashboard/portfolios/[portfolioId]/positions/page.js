@@ -1,429 +1,298 @@
-// src/app/(dashboard)/dashboard/portfolios/[portfolioId]/positions/page.js
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
-import { usePortfolios } from "@/hooks/usePortfolios";
-import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
-import { Alert } from "@/components/ui/Alert";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Modal,
-  ModalHeader,
-  ModalTitle,
-  ModalContent,
-} from "@/components/ui/Modal";
-import { Input } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
-import api from "@/lib/api";
-import Link from "next/link";
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
-  Plus,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   TrendingUp,
   TrendingDown,
-  DollarSign,
-  Calendar,
   Filter,
+  Search,
   Download,
+  Eye,
   Edit,
   Trash2,
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function PositionsPage() {
-  const { portfolioId } = useParams();
-  const { data: portfolios = [] } = usePortfolios();
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [positionFilter, setPositionFilter] = useState("all"); // 'all', 'open', 'closed'
-  const [sortBy, setSortBy] = useState("openTime"); // 'symbol', 'openTime', 'pl', 'value'
-  const [searchTerm, setSearchTerm] = useState("");
-
-  // Get portfolio info
-  const portfolio = portfolios.find((p) => p._id === portfolioId);
-
-  // Fetch positions for this portfolio
-  const {
-    data: positions = [],
-    isLoading,
-    error,
-    refetch,
-  } = useQuery({
-    queryKey: ["positions", portfolioId],
-    queryFn: () =>
-      api
-        .get(`/portfolios/${portfolioId}/positions`)
-        .then((res) => res.data.data || res.data),
-    enabled: !!portfolioId,
+  const params = useParams();
+  const { toast } = useToast();
+  const [positions, setPositions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState({
+    status: "all",
+    search: "",
+    sortBy: "symbol",
+    sortOrder: "asc",
   });
 
-  if (isLoading) return <LoadingSpinner size="lg" />;
+  const fetchPositions = async () => {
+    try {
+      setLoading(true);
+      const queryParams = new URLSearchParams({
+        status: filters.status !== "all" ? filters.status : "",
+        search: filters.search,
+        sortBy: filters.sortBy,
+        sortOrder: filters.sortOrder,
+      });
 
-  if (!portfolio) {
+      const response = await fetch(
+        `/api/portfolios/${params.portfolioId}/positions?${queryParams}`
+      );
+      const data = await response.json();
+
+      if (data.success) {
+        setPositions(data.data.positions || []);
+      } else {
+        toast({
+          title: "Błąd",
+          description: data.message || "Nie udało się pobrać pozycji",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Błąd",
+        description: "Błąd połączenia z serwerem",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (params.portfolioId) {
+      fetchPositions();
+    }
+  }, [params.portfolioId, filters]);
+
+  const handleFilterChange = (key, value) => {
+    setFilters((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const formatCurrency = (amount, currency = "PLN") => {
+    return new Intl.NumberFormat("pl-PL", {
+      style: "currency",
+      currency: currency,
+    }).format(amount);
+  };
+
+  const formatPercentage = (value) => {
+    return `${value > 0 ? "+" : ""}${value.toFixed(2)}%`;
+  };
+
+  const getStatusBadge = (status) => {
+    const variants = {
+      open: "default",
+      closed: "secondary",
+      pending: "outline",
+    };
     return (
-      <div className="flex flex-col items-center justify-center h-64">
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">
-          Portfolio nie znaleziony
-        </h2>
-        <Button asChild>
-          <Link href="/dashboard/portfolios">Powrót do listy portfeli</Link>
-        </Button>
+      <Badge variant={variants[status] || "outline"}>
+        {status === "open"
+          ? "Otwarta"
+          : status === "closed"
+          ? "Zamknięta"
+          : "Oczekująca"}
+      </Badge>
+    );
+  };
+
+  const getPLColor = (pl) => {
+    if (pl > 0) return "text-green-600";
+    if (pl < 0) return "text-red-600";
+    return "text-gray-600";
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-3xl font-bold">Pozycje</h1>
+        </div>
+        <div className="grid gap-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-20 bg-gray-100 rounded animate-pulse" />
+          ))}
+        </div>
       </div>
     );
   }
 
-  // Filter and sort positions
-  const filteredPositions = positions
-    .filter((pos) => {
-      if (positionFilter === "open" && pos.status !== "open") return false;
-      if (positionFilter === "closed" && pos.status !== "closed") return false;
-      if (
-        searchTerm &&
-        !pos.symbol.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-        return false;
-      return true;
-    })
-    .sort((a, b) => {
-      switch (sortBy) {
-        case "symbol":
-          return a.symbol.localeCompare(b.symbol);
-        case "pl":
-          return (b.grossPL || 0) - (a.grossPL || 0);
-        case "value":
-          return (b.marketValue || 0) - (a.marketValue || 0);
-        case "openTime":
-        default:
-          return new Date(b.openTime) - new Date(a.openTime);
-      }
-    });
-
-  const openPositions = positions.filter((pos) => pos.status === "open");
-  const closedPositions = positions.filter((pos) => pos.status === "closed");
-  const totalValue = openPositions.reduce(
-    (sum, pos) => sum + (pos.marketValue || 0),
-    0
-  );
-  const totalPL = positions.reduce((sum, pos) => sum + (pos.grossPL || 0), 0);
-
-  const getStatusBadge = (status) => {
-    const variants = {
-      open: "success",
-      closed: "secondary",
-      pending: "warning",
-    };
-    return variants[status] || "secondary";
-  };
-
-  const getTypeColor = (type) => {
-    return type === "BUY" ? "text-green-600" : "text-red-600";
-  };
-
-  const getPLColor = (pl) => {
-    return pl >= 0 ? "text-green-600" : "text-red-600";
-  };
-
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Pozycje</h1>
-          <p className="text-gray-600">Portfolio: {portfolio.name}</p>
-        </div>
-        <div className="flex space-x-2 mt-4 sm:mt-0">
-          <Button variant="outline">
-            <Download className="w-4 h-4 mr-2" />
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Pozycje</h1>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm">
+            <Download className="h-4 w-4 mr-2" />
             Eksport
           </Button>
-          <Button onClick={() => setShowAddModal(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Dodaj pozycję
-          </Button>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Otwarte pozycje</p>
-                <p className="text-2xl font-bold">{openPositions.length}</p>
-              </div>
-              <TrendingUp className="w-8 h-8 text-green-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Zamknięte pozycje</p>
-                <p className="text-2xl font-bold">{closedPositions.length}</p>
-              </div>
-              <TrendingDown className="w-8 h-8 text-gray-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Wartość pozycji</p>
-                <p className="text-2xl font-bold">
-                  {totalValue.toLocaleString("pl-PL", {
-                    style: "currency",
-                    currency: portfolio.currency,
-                  })}
-                </p>
-              </div>
-              <DollarSign className="w-8 h-8 text-blue-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Łączny P&L</p>
-                <p className={`text-2xl font-bold ${getPLColor(totalPL)}`}>
-                  {totalPL.toLocaleString("pl-PL", {
-                    style: "currency",
-                    currency: portfolio.currency,
-                  })}
-                </p>
-              </div>
-              <div
-                className={`w-8 h-8 ${
-                  totalPL >= 0 ? "text-green-600" : "text-red-600"
-                }`}
-              >
-                {totalPL >= 0 ? <TrendingUp /> : <TrendingDown />}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filters */}
+      {/* Filtry */}
       <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <Input
-              placeholder="Szukaj symbolu..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="sm:w-64"
-            />
-
+        <CardContent className="pt-6">
+          <div className="flex flex-wrap gap-4">
+            <div className="flex-1 min-w-[200px]">
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Szukaj po symbolu..."
+                  className="pl-10"
+                  value={filters.search}
+                  onChange={(e) => handleFilterChange("search", e.target.value)}
+                />
+              </div>
+            </div>
             <Select
-              value={positionFilter}
-              onChange={(e) => setPositionFilter(e.target.value)}
+              value={filters.status}
+              onValueChange={(value) => handleFilterChange("status", value)}
             >
-              <option value="all">Wszystkie pozycje</option>
-              <option value="open">Tylko otwarte</option>
-              <option value="closed">Tylko zamknięte</option>
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Wszystkie</SelectItem>
+                <SelectItem value="open">Otwarte</SelectItem>
+                <SelectItem value="closed">Zamknięte</SelectItem>
+                <SelectItem value="pending">Oczekujące</SelectItem>
+              </SelectContent>
             </Select>
-
-            <Select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-              <option value="openTime">Data otwarcia</option>
-              <option value="symbol">Symbol</option>
-              <option value="pl">P&L</option>
-              <option value="value">Wartość</option>
+            <Select
+              value={filters.sortBy}
+              onValueChange={(value) => handleFilterChange("sortBy", value)}
+            >
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="Sortuj" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="symbol">Symbol</SelectItem>
+                <SelectItem value="openTime">Data otwarcia</SelectItem>
+                <SelectItem value="grossPL">P&L</SelectItem>
+                <SelectItem value="purchaseValue">Wartość</SelectItem>
+              </SelectContent>
             </Select>
           </div>
         </CardContent>
       </Card>
 
-      {/* Positions Table */}
-      {error && (
-        <Alert variant="error">
-          Błąd podczas ładowania pozycji: {error.message}
-        </Alert>
-      )}
-
-      {filteredPositions.length === 0 ? (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              Brak pozycji
-            </h3>
-            <p className="text-gray-600 mb-4">
-              {searchTerm || positionFilter !== "all"
-                ? "Brak pozycji spełniających kryteria wyszukiwania"
-                : "W tym portfelu nie ma jeszcze żadnych pozycji"}
-            </p>
-            {!searchTerm && positionFilter === "all" && (
-              <Button onClick={() => setShowAddModal(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Dodaj pierwszą pozycję
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-      ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle>Pozycje ({filteredPositions.length})</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Symbol
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Typ
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Wolumen
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Cena otwarcia
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Wartość
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      P&L
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Data
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Akcje
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredPositions.map((position) => (
-                    <tr key={position._id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="font-medium text-gray-900">
-                          {position.symbol}
-                        </div>
-                        {position.name && (
-                          <div className="text-sm text-gray-500">
-                            {position.name}
-                          </div>
+      {/* Tabela pozycji */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Pozycje ({positions.length})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Symbol</TableHead>
+                <TableHead>Typ</TableHead>
+                <TableHead>Wolumen</TableHead>
+                <TableHead>Cena otwarcia</TableHead>
+                <TableHead>Cena bieżąca</TableHead>
+                <TableHead>Wartość</TableHead>
+                <TableHead>P&L</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Data otwarcia</TableHead>
+                <TableHead className="text-right">Akcje</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {positions.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={10}
+                    className="text-center py-8 text-gray-500"
+                  >
+                    Brak pozycji do wyświetlenia
+                  </TableCell>
+                </TableRow>
+              ) : (
+                positions.map((position) => (
+                  <TableRow key={position._id}>
+                    <TableCell className="font-medium">
+                      {position.symbol}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          position.type === "BUY" ? "default" : "secondary"
+                        }
+                      >
+                        {position.type}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{position.volume}</TableCell>
+                    <TableCell>{formatCurrency(position.openPrice)}</TableCell>
+                    <TableCell>
+                      {formatCurrency(
+                        position.currentPrice || position.openPrice
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {formatCurrency(position.purchaseValue)}
+                    </TableCell>
+                    <TableCell className={getPLColor(position.grossPL || 0)}>
+                      <div className="flex items-center gap-1">
+                        {(position.grossPL || 0) > 0 ? (
+                          <TrendingUp className="h-4 w-4" />
+                        ) : (
+                          <TrendingDown className="h-4 w-4" />
                         )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span
-                          className={`font-medium ${getTypeColor(
-                            position.type
-                          )}`}
+                        {formatCurrency(position.grossPL || 0)}
+                      </div>
+                    </TableCell>
+                    <TableCell>{getStatusBadge(position.status)}</TableCell>
+                    <TableCell>
+                      {new Date(position.openTime).toLocaleDateString("pl-PL")}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button variant="ghost" size="sm">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-600"
                         >
-                          {position.type}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {position.volume?.toLocaleString()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {position.openPrice?.toLocaleString("pl-PL", {
-                          style: "currency",
-                          currency: portfolio.currency,
-                        })}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {position.marketValue?.toLocaleString("pl-PL", {
-                          style: "currency",
-                          currency: portfolio.currency,
-                        })}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <span className={getPLColor(position.grossPL)}>
-                          {position.grossPL?.toLocaleString("pl-PL", {
-                            style: "currency",
-                            currency: portfolio.currency,
-                          })}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Badge variant={getStatusBadge(position.status)}>
-                          {position.status}
-                        </Badge>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <div className="flex items-center">
-                          <Calendar className="w-4 h-4 mr-1" />
-                          {new Date(position.openTime).toLocaleDateString(
-                            "pl-PL"
-                          )}
-                        </div>
-                        {position.closeTime && (
-                          <div className="text-xs text-gray-400 mt-1">
-                            Zamknięto:{" "}
-                            {new Date(position.closeTime).toLocaleDateString(
-                              "pl-PL"
-                            )}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex space-x-2">
-                          <button className="text-blue-600 hover:text-blue-900">
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button className="text-red-600 hover:text-red-900">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Add Position Modal */}
-      <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)}>
-        <ModalHeader>
-          <ModalTitle>Dodaj nową pozycję</ModalTitle>
-        </ModalHeader>
-        <ModalContent>
-          <div className="space-y-4">
-            <Input label="Symbol" placeholder="np. AAPL" />
-            <div className="grid grid-cols-2 gap-4">
-              <Select label="Typ">
-                <option value="BUY">Kupno</option>
-                <option value="SELL">Sprzedaż</option>
-              </Select>
-              <Input label="Wolumen" type="number" placeholder="100" />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <Input
-                label="Cena otwarcia"
-                type="number"
-                step="0.01"
-                placeholder="150.00"
-              />
-              <Input label="Data otwarcia" type="date" />
-            </div>
-            <div className="flex justify-end space-x-2 pt-4">
-              <Button variant="outline" onClick={() => setShowAddModal(false)}>
-                Anuluj
-              </Button>
-              <Button>Dodaj pozycję</Button>
-            </div>
-          </div>
-        </ModalContent>
-      </Modal>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   );
 }
