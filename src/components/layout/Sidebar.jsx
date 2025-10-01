@@ -22,15 +22,9 @@ import { useAuth } from "@/components/providers/AuthProvider";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
-  { name: "Positions", href: "/dashboard/positions", icon: TrendingUp },
-  {
-    name: "Cash Operations",
-    href: "/dashboard/cash-operations",
-    icon: DollarSign,
-  },
-  { name: "Orders", href: "/dashboard/orders", icon: ClipboardList },
+
   { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
-  { name: "Import", href: "/dashboard/import", icon: Upload },
+  { name: "Portfolios", href: "/dashboard/portfolios", icon: Upload },
 ];
 
 export default function Sidebar({ isOpen, onClose }) {

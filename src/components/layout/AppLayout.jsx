@@ -7,6 +7,7 @@
 
 import React, { useState } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
+import LogoutButton from "@/components/ui/LogoutButton";
 
 export function AppLayout({ children }) {
   const { user, logout } = useAuth();
@@ -14,10 +15,8 @@ export function AppLayout({ children }) {
 
   const navigation = [
     { name: "Dashboard", href: "/dashboard" },
-    { name: "Positions", href: "/dashboard/positions" },
     { name: "Analytics", href: "/dashboard/analytics" },
-    { name: "Orders", href: "/dashboard/orders" },
-    { name: "Import", href: "/dashboard/import" },
+    { name: "Portfolios", href: "/dashboard/portfolios" },
   ];
 
   return (
@@ -55,12 +54,7 @@ export function AppLayout({ children }) {
                 </span>
               </div>
 
-              <button
-                onClick={logout}
-                className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium transition-colors border border-gray-300 hover:border-gray-400"
-              >
-                Logout
-              </button>
+              <LogoutButton />
 
               <div className="md:hidden">
                 <button

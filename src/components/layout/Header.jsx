@@ -12,11 +12,8 @@ import { useAuth } from "@/components/providers/AuthProvider";
 
 const pageNames = {
   "/dashboard": "Dashboard",
-  "/dashboard/positions": "Positions",
-  "/dashboard/cash-operations": "Cash Operations",
-  "/dashboard/orders": "Orders",
   "/dashboard/analytics": "Analytics",
-  "/dashboard/import": "Import",
+  "/dashboard/portfolios": "Portfolios",
   "/dashboard/settings": "Settings",
 };
 

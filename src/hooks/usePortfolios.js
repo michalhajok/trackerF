@@ -79,3 +79,76 @@ export function useSyncPortfolio(portfolioId) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["portfolios"] }),
   });
 }
+
+export function usePositions(portfolioId, params = {}) {
+  return useQuery({
+    queryKey: ["positions", portfolioId, params],
+    queryFn: () =>
+      api
+        .get(`/portfolios/${portfolioId}/positions`)
+        .then((res) => res.data.positions),
+    enabled: !!portfolioId,
+    keepPreviousData: true,
+  });
+}
+
+export function useCashOperations(portfolioId, params = {}) {
+  return useQuery({
+    queryKey: ["cashOperations", portfolioId, params],
+    queryFn: () =>
+      api
+        .get(`/portfolios/${portfolioId}/cash-operations`, { params })
+        .then((res) => res.data.operations),
+    enabled: !!portfolioId,
+    keepPreviousData: true,
+  });
+}
+
+export function usePendingOrders(portfolioId, params = {}) {
+  return useQuery({
+    queryKey: ["pendingOrders", portfolioId, params],
+    queryFn: () =>
+      api
+        .get(`/portfolios/${portfolioId}/pending-orders`, { params })
+        .then((res) => res.data.orders),
+    enabled: !!portfolioId,
+    keepPreviousData: true,
+  });
+}
+export function useAnalytics(portfolioId, timeRange = "1M") {
+  return useQuery({
+    queryKey: ["analytics", portfolioId, timeRange],
+    enabled: !!portfolioId,
+    queryFn: async () => {
+      const res = await api.get(`/portfolios/${portfolioId}/analytics`, {
+        params: { timeRange },
+      });
+      // Jeśli backend nie zwróci data, zastąp pustą strukturą
+      return res.data || { performance: [], allocation: [], summary: {} };
+    },
+  });
+}
+
+export function useMarketData(portfolioId, params = {}) {
+  return useQuery({
+    queryKey: ["marketData", portfolioId, params],
+    queryFn: () =>
+      api
+        .get(`/portfolios/${portfolioId}/market-data`, { params })
+        .then((res) => res.data.quotes),
+    enabled: !!portfolioId,
+    keepPreviousData: true,
+  });
+}
+
+export function useWatchlists(portfolioId) {
+  return useQuery({
+    queryKey: ["watchlists", portfolioId],
+    queryFn: () =>
+      api
+        .get(`/portfolios/${portfolioId}/watchlists`)
+        .then((res) => res.data.watchlists),
+    enabled: !!portfolioId,
+    keepPreviousData: true,
+  });
+}

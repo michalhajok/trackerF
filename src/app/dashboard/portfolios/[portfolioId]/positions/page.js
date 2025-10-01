@@ -1,44 +1,35 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
-  TableBody,
-  TableCell,
-  TableHead,
   TableHeader,
+  TableHead,
+  TableBody,
   TableRow,
+  TableCell,
 } from "@/components/ui/table";
+import { Select, SelectOption } from "@/components/ui/select";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  TrendingUp,
-  TrendingDown,
-  Filter,
-  Search,
   Download,
   Eye,
   Edit,
   Trash2,
+  TrendingUp,
+  TrendingDown,
+  Search,
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/contexts/ToastContext";
+import { usePositions } from "@/hooks/usePortfolios";
 
 export default function PositionsPage() {
-  const params = useParams();
-  const { toast } = useToast();
-  const [positions, setPositions] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { portfolioId } = useParams();
+  const { toast } = useToast(); // lub { notify } - sprawdź co zwraca Twój kontekst
   const [filters, setFilters] = useState({
     status: "all",
     search: "",
@@ -46,110 +37,44 @@ export default function PositionsPage() {
     sortOrder: "asc",
   });
 
-  const fetchPositions = async () => {
-    try {
-      setLoading(true);
-      const queryParams = new URLSearchParams({
-        status: filters.status !== "all" ? filters.status : "",
-        search: filters.search,
-        sortBy: filters.sortBy,
-        sortOrder: filters.sortOrder,
-      });
-
-      const response = await fetch(
-        `/api/portfolios/${params.portfolioId}/positions?${queryParams}`
-      );
-      const data = await response.json();
-
-      if (data.success) {
-        setPositions(data.data.positions || []);
-      } else {
-        toast({
-          title: "Błąd",
-          description: data.message || "Nie udało się pobrać pozycji",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Błąd",
-        description: "Błąd połączenia z serwerem",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
+  // Przygotuj params dla hooka
+  const params = {
+    ...(filters.status !== "all" && { status: filters.status }),
+    ...(filters.search && { search: filters.search }),
+    sortBy: filters.sortBy,
+    sortOrder: filters.sortOrder,
   };
 
-  useEffect(() => {
-    if (params.portfolioId) {
-      fetchPositions();
-    }
-  }, [params.portfolioId, filters]);
+  const {
+    data: positions = [],
+    isLoading,
+    isError,
+  } = usePositions(portfolioId, params);
 
   const handleFilterChange = (key, value) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
-  const formatCurrency = (amount, currency = "PLN") => {
-    return new Intl.NumberFormat("pl-PL", {
-      style: "currency",
-      currency: currency,
-    }).format(amount);
-  };
+  if (isLoading) return <p>Ładowanie pozycji...</p>;
 
-  const formatPercentage = (value) => {
-    return `${value > 0 ? "+" : ""}${value.toFixed(2)}%`;
-  };
-
-  const getStatusBadge = (status) => {
-    const variants = {
-      open: "default",
-      closed: "secondary",
-      pending: "outline",
-    };
-    return (
-      <Badge variant={variants[status] || "outline"}>
-        {status === "open"
-          ? "Otwarta"
-          : status === "closed"
-          ? "Zamknięta"
-          : "Oczekująca"}
-      </Badge>
-    );
-  };
-
-  const getPLColor = (pl) => {
-    if (pl > 0) return "text-green-600";
-    if (pl < 0) return "text-red-600";
-    return "text-gray-600";
-  };
-
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">Pozycje</h1>
-        </div>
-        <div className="grid gap-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-20 bg-gray-100 rounded animate-pulse" />
-          ))}
-        </div>
-      </div>
-    );
+  if (isError) {
+    toast &&
+      toast({
+        title: "Błąd",
+        description: "Nie udało się pobrać pozycji",
+        variant: "destructive",
+      });
+    return <p>Błąd podczas ładowania pozycji</p>;
   }
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Pozycje</h1>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-2" />
-            Eksport
-          </Button>
-        </div>
+        <Button variant="outline" size="sm">
+          <Download className="h-4 w-4 mr-2" />
+          Eksport
+        </Button>
       </div>
 
       {/* Filtry */}
@@ -169,130 +94,108 @@ export default function PositionsPage() {
             </div>
             <Select
               value={filters.status}
-              onValueChange={(value) => handleFilterChange("status", value)}
+              onChange={(e) => handleFilterChange("status", e.target.value)}
+              name="status"
             >
-              <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Wszystkie</SelectItem>
-                <SelectItem value="open">Otwarte</SelectItem>
-                <SelectItem value="closed">Zamknięte</SelectItem>
-                <SelectItem value="pending">Oczekujące</SelectItem>
-              </SelectContent>
+              <SelectOption value="all">Wszystkie</SelectOption>
+              <SelectOption value="open">Otwarte</SelectOption>
+              <SelectOption value="closed">Zamknięte</SelectOption>
+              <SelectOption value="pending">Oczekujące</SelectOption>
             </Select>
             <Select
               value={filters.sortBy}
-              onValueChange={(value) => handleFilterChange("sortBy", value)}
+              onChange={(e) => handleFilterChange("sortBy", e.target.value)}
+              name="sortBy"
             >
-              <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="Sortuj" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="symbol">Symbol</SelectItem>
-                <SelectItem value="openTime">Data otwarcia</SelectItem>
-                <SelectItem value="grossPL">P&L</SelectItem>
-                <SelectItem value="purchaseValue">Wartość</SelectItem>
-              </SelectContent>
+              <SelectOption value="symbol">Symbol</SelectOption>
+              <SelectOption value="openTime">Data otwarcia</SelectOption>
+              <SelectOption value="grossPL">P&L</SelectOption>
+              <SelectOption value="purchaseValue">Wartość</SelectOption>
             </Select>
           </div>
         </CardContent>
       </Card>
 
       {/* Tabela pozycji */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Pozycje ({positions.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Symbol</TableHead>
-                <TableHead>Typ</TableHead>
-                <TableHead>Wolumen</TableHead>
-                <TableHead>Cena otwarcia</TableHead>
-                <TableHead>Cena bieżąca</TableHead>
-                <TableHead>Wartość</TableHead>
-                <TableHead>P&L</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Data otwarcia</TableHead>
-                <TableHead className="text-right">Akcje</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {positions.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={10}
-                    className="text-center py-8 text-gray-500"
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Symbol</TableHead>
+            <TableHead>Typ</TableHead>
+            <TableHead>Wolumen</TableHead>
+            <TableHead>Cena otwarcia</TableHead>
+            <TableHead>P&L</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Data otwarcia</TableHead>
+            <TableHead className="text-right">Akcje</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {positions.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                Brak pozycji do wyświetlenia
+              </TableCell>
+            </TableRow>
+          ) : (
+            positions.map((position) => (
+              <TableRow key={position._id}>
+                <TableCell className="font-medium">{position.symbol}</TableCell>
+                <TableCell>
+                  <Badge
+                    variant={position.type === "BUY" ? "default" : "secondary"}
                   >
-                    Brak pozycji do wyświetlenia
-                  </TableCell>
-                </TableRow>
-              ) : (
-                positions.map((position) => (
-                  <TableRow key={position._id}>
-                    <TableCell className="font-medium">
-                      {position.symbol}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          position.type === "BUY" ? "default" : "secondary"
-                        }
-                      >
-                        {position.type}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{position.volume}</TableCell>
-                    <TableCell>{formatCurrency(position.openPrice)}</TableCell>
-                    <TableCell>
-                      {formatCurrency(
-                        position.currentPrice || position.openPrice
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {formatCurrency(position.purchaseValue)}
-                    </TableCell>
-                    <TableCell className={getPLColor(position.grossPL || 0)}>
-                      <div className="flex items-center gap-1">
-                        {(position.grossPL || 0) > 0 ? (
-                          <TrendingUp className="h-4 w-4" />
-                        ) : (
-                          <TrendingDown className="h-4 w-4" />
-                        )}
-                        {formatCurrency(position.grossPL || 0)}
-                      </div>
-                    </TableCell>
-                    <TableCell>{getStatusBadge(position.status)}</TableCell>
-                    <TableCell>
-                      {new Date(position.openTime).toLocaleDateString("pl-PL")}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="sm">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-red-600"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                    {position.type}
+                  </Badge>
+                </TableCell>
+                <TableCell>{position.volume}</TableCell>
+                <TableCell>{position.openPrice?.toFixed(2) || "N/A"}</TableCell>
+                <TableCell
+                  className={
+                    position.grossPL >= 0 ? "text-green-600" : "text-red-600"
+                  }
+                >
+                  <div className="flex items-center gap-1">
+                    {position.grossPL >= 0 ? (
+                      <TrendingUp className="h-4 w-4" />
+                    ) : (
+                      <TrendingDown className="h-4 w-4" />
+                    )}
+                    {position.grossPL?.toFixed(2) || "0.00"}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <Badge
+                    variant={
+                      position.status === "open" ? "default" : "secondary"
+                    }
+                  >
+                    {position.status}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  {position.openTime
+                    ? new Date(position.openTime).toLocaleDateString("pl-PL")
+                    : "N/A"}
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-1">
+                    <Button variant="ghost" size="sm">
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm">
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" className="text-red-600">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
     </div>
   );
 }
