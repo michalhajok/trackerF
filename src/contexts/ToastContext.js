@@ -104,6 +104,8 @@ function ToastContainer() {
 
   if (toasts.length === 0) return null;
 
+  console.log("Rendering ToastContainer with toasts:", toasts);
+
   return (
     <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
       {toasts.map((toast) => (
@@ -150,8 +152,10 @@ function ToastItem({ toast }) {
     <div className={getToastStyles()}>
       <span className="text-lg">{getIcon()}</span>
       <div className="flex-1">
-        {toast.title && <div className="font-semibold mb-1">{toast.title}</div>}
-        <div className="text-sm">{toast.message}</div>
+        {toast.title && (
+          <div className="font-semibold mb-1">{toast.message.title}</div>
+        )}
+        <div className="text-sm">{toast.message.description}</div>
       </div>
       <button
         onClick={() => removeToast(toast.id)}

@@ -68,13 +68,19 @@ export default function PortfolioDashboardPage() {
         </div>
         <div className="flex space-x-2 mt-4 sm:mt-0">
           <Button variant="outline">
-            <Link href={`/dashboard/portfolios/${portfolioId}/edit`}>
+            <Link
+              href={`/dashboard/portfolios/${portfolioId}/edit`}
+              className="w-full h-full flex flex-col items-center justify-center"
+            >
               <Settings className="w-4 h-4 mr-2" />
               Edytuj
             </Link>
           </Button>
           <Button variant="outline">
-            <Link href={`/dashboard/portfolios/${portfolioId}/import`}>
+            <Link
+              href={`/dashboard/portfolios/${portfolioId}/import`}
+              className="w-full h-full flex flex-col items-center justify-center"
+            >
               <Upload className="w-4 h-4 mr-2" />
               Import
             </Link>
@@ -170,14 +176,20 @@ export default function PortfolioDashboardPage() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Button className="h-20 flex-col">
-              <Link href={`/dashboard/portfolios/${portfolioId}/positions`}>
+            <Button variant="outline" className="h-20 flex-col">
+              <Link
+                href={`/dashboard/portfolios/${portfolioId}/positions`}
+                className="w-full h-full flex flex-col items-center justify-center"
+              >
                 <Activity className="w-6 h-6 mb-2" />
                 <span>Pozycje</span>
               </Link>
             </Button>
             <Button variant="outline" className="h-20 flex-col">
-              <Link href={`/dashboard/portfolios/${portfolioId}/analytics`}>
+              <Link
+                href={`/dashboard/portfolios/${portfolioId}/analytics`}
+                className="w-full h-full flex flex-col items-center justify-center"
+              >
                 <BarChart3 className="w-6 h-6 mb-2" />
                 <span>Analityka</span>
               </Link>
@@ -185,13 +197,17 @@ export default function PortfolioDashboardPage() {
             <Button variant="outline" className="h-20 flex-col">
               <Link
                 href={`/dashboard/portfolios/${portfolioId}/cash-operations`}
+                className="w-full h-full flex flex-col items-center justify-center"
               >
                 <DollarSign className="w-6 h-6 mb-2" />
                 <span>Operacje</span>
               </Link>
             </Button>
             <Button variant="outline" className="h-20 flex-col">
-              <Link href={`/dashboard/portfolios/${portfolioId}/watchlists`}>
+              <Link
+                href={`/dashboard/portfolios/${portfolioId}/watchlists`}
+                className="w-full h-full flex flex-col items-center justify-center"
+              >
                 <PieChart className="w-6 h-6 mb-2" />
                 <span>Watchlisty</span>
               </Link>

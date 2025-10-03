@@ -1,6 +1,6 @@
 /**
- * Button Component - Professional Design with New Colors
- * Beautiful, accessible, and consistent styling
+ * Button Component - Fixed Color Classes
+ * Compatible with current Tailwind config
  */
 
 import React, { forwardRef } from "react";
@@ -23,40 +23,38 @@ const Button = forwardRef(
       "inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed";
 
     const variants = {
-      // Primary - Professional blue
+      // ✅ POPRAWIONE - używa DEFAULT i hover z opacity
       primary:
-        "bg-primary-500 hover:bg-primary-600 focus:ring-primary-500 text-white shadow-sm hover:shadow-md",
+        "bg-primary hover:bg-primary/90 focus:ring-primary text-white shadow-sm hover:shadow-md",
 
-      // Secondary - Elegant purple
       secondary:
-        "bg-secondary-500 hover:bg-secondary-600 focus:ring-secondary-500 text-white shadow-sm hover:shadow-md",
+        "bg-secondary hover:bg-secondary/90 focus:ring-secondary text-white shadow-sm hover:shadow-md",
 
-      // Success - Fresh green
       success:
-        "bg-success-500 hover:bg-success-600 focus:ring-success-500 text-white shadow-sm hover:shadow-md",
+        "bg-success hover:bg-success/90 focus:ring-success text-white shadow-sm hover:shadow-md",
 
-      // Error - Clear red
       error:
-        "bg-error-500 hover:bg-error-600 focus:ring-error-500 text-white shadow-sm hover:shadow-md",
+        "bg-error hover:bg-error/90 focus:ring-error text-white shadow-sm hover:shadow-md",
 
-      // Warning - Vibrant orange
       warning:
-        "bg-warning-500 hover:bg-warning-600 focus:ring-warning-500 text-white shadow-sm hover:shadow-md",
+        "bg-warning hover:bg-warning/90 focus:ring-warning text-white shadow-sm hover:shadow-md",
 
-      // Outline variants - Modern & clean
+      // Outline variants
       outline:
-        "border border-gray-300 bg-white hover:bg-gray-50 focus:ring-primary-500 text-gray-700 shadow-sm",
-      outlinePrimary:
-        "border border-primary-300 bg-white hover:bg-primary-50 focus:ring-primary-500 text-primary-700",
+        "border border-gray-300 bg-white hover:bg-gray-50 focus:ring-primary text-gray-700 shadow-sm",
 
-      // Ghost variants - Subtle
+      outlinePrimary:
+        "border border-primary/30 bg-white hover:bg-primary/5 focus:ring-primary text-primary",
+
+      // Ghost variants
       ghost:
-        "bg-transparent hover:bg-gray-100 focus:ring-primary-500 text-gray-700",
+        "bg-transparent hover:bg-gray-100 focus:ring-primary text-gray-700",
+
       ghostPrimary:
-        "bg-transparent hover:bg-primary-50 focus:ring-primary-500 text-primary-600",
+        "bg-transparent hover:bg-primary/10 focus:ring-primary text-primary",
 
       // Link variant
-      link: "bg-transparent hover:underline focus:ring-primary-500 text-primary-600 hover:text-primary-700 p-0 h-auto shadow-none",
+      link: "bg-transparent hover:underline focus:ring-primary text-primary hover:text-primary/80 p-0 h-auto shadow-none",
     };
 
     const sizes = {

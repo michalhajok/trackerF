@@ -2,200 +2,179 @@
 
 import { useState } from "react";
 import { useParams } from "next/navigation";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableHeader,
-  TableHead,
-  TableBody,
-  TableRow,
-  TableCell,
-} from "@/components/ui/table";
-import { Select, SelectOption } from "@/components/ui/select";
-import {
-  Download,
-  Eye,
-  Edit,
-  Trash2,
-  TrendingUp,
-  TrendingDown,
-  Search,
-} from "lucide-react";
-import { useToast } from "@/contexts/ToastContext";
+import dynamic from "next/dynamic";
+import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { Alert } from "@/components/ui/Alert";
+import { Plus, Download, Filter } from "lucide-react";
 import { usePositions } from "@/hooks/usePortfolios";
+import { useToast } from "@/contexts/ToastContext";
+
+// Dynamic import dla heavy components (CODE SPLITTING)
+const PositionsList = dynamic(
+  () => import("@/components/features/Positions/PositionsList.jsx"),
+  {
+    loading: () => (
+      <div className="space-y-4">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-32 bg-gray-100 animate-pulse rounded-lg" />
+        ))}
+      </div>
+    ),
+    ssr: false,
+  }
+);
 
 export default function PositionsPage() {
   const { portfolioId } = useParams();
-  const { toast } = useToast(); // lub { notify } - sprawdź co zwraca Twój kontekst
+  const { success, error: showError } = useToast();
+
   const [filters, setFilters] = useState({
     status: "all",
     search: "",
-    sortBy: "symbol",
-    sortOrder: "asc",
+    sortBy: "openTime",
+    sortOrder: "desc",
+    type: "all",
   });
 
-  // Przygotuj params dla hooka
-  const params = {
-    ...(filters.status !== "all" && { status: filters.status }),
-    ...(filters.search && { search: filters.search }),
-    sortBy: filters.sortBy,
-    sortOrder: filters.sortOrder,
-  };
-
+  // Używamy hooka z usePortfolios.js
   const {
     data: positions = [],
     isLoading,
     isError,
-  } = usePositions(portfolioId, params);
+    refetch,
+  } = usePositions(portfolioId, filters);
 
   const handleFilterChange = (key, value) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
-  if (isLoading) return <p>Ładowanie pozycji...</p>;
+  const handleExport = async () => {
+    try {
+      // TODO: Implement export functionality
+      success("Export functionality coming soon!");
+    } catch (error) {
+      showError("Failed to export positions");
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="p-6">
+        <div className="h-8 bg-gray-200 rounded w-48 mb-6 animate-pulse" />
+        <div className="space-y-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              className="h-24 bg-gray-100 animate-pulse rounded-lg"
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   if (isError) {
-    toast &&
-      toast({
-        title: "Błąd",
-        description: "Nie udało się pobrać pozycji",
-        variant: "destructive",
-      });
-    return <p>Błąd podczas ładowania pozycji</p>;
+    return (
+      <div className="p-6">
+        <Alert type="error" title="Error Loading Positions">
+          Failed to load positions. Please try refreshing the page.
+        </Alert>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 space-y-6">
+      {/* Header */}
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Pozycje</h1>
-        <Button variant="outline" size="sm">
-          <Download className="h-4 w-4 mr-2" />
-          Eksport
-        </Button>
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Positions</h1>
+          <p className="text-slate-600">
+            Manage your portfolio positions ({positions.length} total)
+          </p>
+        </div>
+
+        <div className="flex gap-3">
+          <Button
+            variant="outline"
+            onClick={handleExport}
+            className="flex items-center gap-2"
+          >
+            <Download className="w-4 h-4" />
+            Export
+          </Button>
+          <Button
+            href={`/dashboard/portfolios/${portfolioId}/positions/new`}
+            className="flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Add Position
+          </Button>
+        </div>
       </div>
 
-      {/* Filtry */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-wrap gap-4">
-            <div className="flex-1 min-w-[200px]">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Szukaj po symbolu..."
-                  className="pl-10"
-                  value={filters.search}
-                  onChange={(e) => handleFilterChange("search", e.target.value)}
-                />
-              </div>
-            </div>
-            <Select
-              value={filters.status}
-              onChange={(e) => handleFilterChange("status", e.target.value)}
-              name="status"
-            >
-              <SelectOption value="all">Wszystkie</SelectOption>
-              <SelectOption value="open">Otwarte</SelectOption>
-              <SelectOption value="closed">Zamknięte</SelectOption>
-              <SelectOption value="pending">Oczekujące</SelectOption>
-            </Select>
-            <Select
-              value={filters.sortBy}
-              onChange={(e) => handleFilterChange("sortBy", e.target.value)}
-              name="sortBy"
-            >
-              <SelectOption value="symbol">Symbol</SelectOption>
-              <SelectOption value="openTime">Data otwarcia</SelectOption>
-              <SelectOption value="grossPL">P&L</SelectOption>
-              <SelectOption value="purchaseValue">Wartość</SelectOption>
-            </Select>
+      {/* Filters */}
+      <Card className="p-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="relative">
+            <Input
+              placeholder="Search symbol..."
+              value={filters.search}
+              onChange={(e) => handleFilterChange("search", e.target.value)}
+              className="pl-10"
+            />
+            <Filter className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
           </div>
-        </CardContent>
+
+          <Select
+            value={filters.status}
+            onChange={(e) => handleFilterChange("status", e.target.value)}
+          >
+            <option value="all">All Status</option>
+            <option value="open">Open</option>
+            <option value="closed">Closed</option>
+            <option value="pending">Pending</option>
+          </Select>
+
+          <Select
+            value={filters.type}
+            onChange={(e) => handleFilterChange("type", e.target.value)}
+          >
+            <option value="all">All Types</option>
+            <option value="BUY">Buy</option>
+            <option value="SELL">Sell</option>
+          </Select>
+
+          <Select
+            value={filters.sortBy}
+            onChange={(e) => handleFilterChange("sortBy", e.target.value)}
+          >
+            <option value="openTime">Open Date</option>
+            <option value="symbol">Symbol</option>
+            <option value="grossPL">P&L</option>
+            <option value="currentValue">Value</option>
+          </Select>
+
+          <Select
+            value={filters.sortOrder}
+            onChange={(e) => handleFilterChange("sortOrder", e.target.value)}
+          >
+            <option value="desc">Newest First</option>
+            <option value="asc">Oldest First</option>
+          </Select>
+        </div>
       </Card>
 
-      {/* Tabela pozycji */}
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Symbol</TableHead>
-            <TableHead>Typ</TableHead>
-            <TableHead>Wolumen</TableHead>
-            <TableHead>Cena otwarcia</TableHead>
-            <TableHead>P&L</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Data otwarcia</TableHead>
-            <TableHead className="text-right">Akcje</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {positions.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={8} className="text-center py-8 text-gray-500">
-                Brak pozycji do wyświetlenia
-              </TableCell>
-            </TableRow>
-          ) : (
-            positions.map((position) => (
-              <TableRow key={position._id}>
-                <TableCell className="font-medium">{position.symbol}</TableCell>
-                <TableCell>
-                  <Badge
-                    variant={position.type === "BUY" ? "default" : "secondary"}
-                  >
-                    {position.type}
-                  </Badge>
-                </TableCell>
-                <TableCell>{position.volume}</TableCell>
-                <TableCell>{position.openPrice?.toFixed(2) || "N/A"}</TableCell>
-                <TableCell
-                  className={
-                    position.grossPL >= 0 ? "text-green-600" : "text-red-600"
-                  }
-                >
-                  <div className="flex items-center gap-1">
-                    {position.grossPL >= 0 ? (
-                      <TrendingUp className="h-4 w-4" />
-                    ) : (
-                      <TrendingDown className="h-4 w-4" />
-                    )}
-                    {position.grossPL?.toFixed(2) || "0.00"}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Badge
-                    variant={
-                      position.status === "open" ? "default" : "secondary"
-                    }
-                  >
-                    {position.status}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  {position.openTime
-                    ? new Date(position.openTime).toLocaleDateString("pl-PL")
-                    : "N/A"}
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-1">
-                    <Button variant="ghost" size="sm">
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm">
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" className="text-red-600">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+      {/* Positions List - Używa komponentu z features */}
+      <PositionsList
+        positions={positions}
+        onRefresh={refetch}
+        portfolioId={portfolioId}
+      />
     </div>
   );
 }
