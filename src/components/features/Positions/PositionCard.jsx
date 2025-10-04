@@ -1,5 +1,5 @@
 "use client";
-
+import { useMemo, useCallback } from "react";
 import {
   TrendingUp,
   TrendingDown,
@@ -21,14 +21,51 @@ import {
 } from "@/lib/utils";
 import Link from "next/link";
 
+/**
+ * Portfolio position card component
+ * @param {Object} props - Component props
+ * @param {Object} props.position - Position data
+ * @param {string} props.position._id - Position ID
+ * @param {string} props.position.symbol - Trading symbol
+ * @param {'BUY'|'SELL'} props.position.type - Position type
+ * @param {number} props.position.volume - Position volume
+ * @param {Function} [props.onEdit] - Edit callback
+ * @param {Function} [props.onDelete] - Delete callback
+ * @returns {JSX.Element} Position card component
+ */
+
 export default function PositionCard({ position, onEdit, onDelete, onClose }) {
-  const isOpen = position.status === "open";
-  const isProfit = (position.grossPL || 0) >= 0;
-  const isBuy = position.type === "BUY";
+  const { isOpen, isProfit, duration } = useMemo(
+    () => ({
+      isOpen: position.status === "open",
+      isProfit: (position.grossPL || 0) >= 0,
+      duration: calculateDuration(),
+    }),
+    [position]
+  );
+
+  const handleEdit = useCallback(() => onEdit?.(position), [onEdit, position]);
+
+  // export default function PositionCard({ position, onEdit, onDelete, onClose }) {
+  //   const isOpen = position.status === "open";
+  //   const isProfit = (position.grossPL || 0) >= 0;
+  //   const isBuy = position.type === "BUY";
+
+  // const calculateDuration = () => {
+  //   const start = new Date(position.openTime);
+  //   const end = isOpen ? new Date() : new Date(position.closeTime);
+  //   return Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+  // };
 
   const calculateDuration = () => {
+    if (!position?.openTime) return 0;
+
     const start = new Date(position.openTime);
+    if (isNaN(start.getTime())) return 0;
+
     const end = isOpen ? new Date() : new Date(position.closeTime);
+    if (isNaN(end.getTime())) return 0;
+
     return Math.ceil((end - start) / (1000 * 60 * 60 * 24));
   };
 
