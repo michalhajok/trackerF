@@ -15,8 +15,8 @@ export function AppLayout({ children }) {
 
   const navigation = [
     { name: "Dashboard", href: "/dashboard" },
-    { name: "Analytics", href: "/dashboard/analytics" },
-    { name: "Portfolios", href: "/dashboard/portfolios" },
+    { name: "Analityka", href: "/dashboard/analytics" },
+    { name: "Portfele", href: "/dashboard/portfolios" },
   ];
 
   return (
@@ -50,7 +50,7 @@ export function AppLayout({ children }) {
             <div className="flex items-center space-x-4">
               <div className="hidden md:block">
                 <span className="text-gray-700 text-sm">
-                  Welcome, {user?.name || user?.email || "User"}
+                  Witaj, {user?.name || user?.email || "User"}
                 </span>
               </div>
 
@@ -110,8 +110,7 @@ export function AppLayout({ children }) {
       <footer className="bg-white border-t border-gray-200 mt-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="text-center text-sm text-gray-500">
-            © 2025 Portfolio Manager. Professional portfolio management
-            application.
+            © 2025 Portfolio Manager.
           </div>
         </div>
       </footer>

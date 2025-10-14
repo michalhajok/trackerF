@@ -1,157 +1,192 @@
 "use client";
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api";
-import { useToast } from "@/components/ui/Toast";
+import { useState, useEffect, useCallback } from "react";
+import { get, post, patch, del } from "@/hooks/useApi";
+import { useToast } from "@/contexts/ToastContext";
+import { usePortfolio } from "@/contexts/PortfolioContext";
 
 /**
- * Query hook for fetching cash operations
+ * Hook for fetching cash operations list
  */
 export function useCashOperations(filters = {}) {
-  return useQuery({
-    queryKey: ["cash-operations", filters],
-    queryFn: () => api.cashOperations.getAll(filters),
-    select: (data) => data.data,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-  });
+  // const { portfolioId } = usePortfolio();
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const fetchOperations = useCallback(() => {
+    setLoading(true);
+    setError(null);
+    get(`/cash-operations`, {
+      params: { ...filters },
+    })
+      .then((data) => setData(data))
+      .catch((err) => setError(err))
+      .finally(() => setLoading(false));
+  }, [JSON.stringify(filters)]);
+
+  useEffect(() => {
+    fetchOperations();
+  }, [fetchOperations]);
+
+  return { data, loading, error, refresh: fetchOperations };
 }
 
 /**
- * Query hook for fetching cash operations by type
- */
-export function useCashOperationsByType(type) {
-  return useCashOperations({ type });
-}
-
-/**
- * Query hook for fetching a single cash operation
- */
-export function useCashOperation(id) {
-  return useQuery({
-    queryKey: ["cash-operation", id],
-    queryFn: () => api.cashOperations.getById(id),
-    select: (data) => data.data,
-    enabled: !!id,
-  });
-}
-
-/**
- * Mutation hook for creating a new cash operation
+ * Hook for creating a new cash operation
  */
 export function useCreateCashOperation() {
-  const queryClient = useQueryClient();
+  const { portfolioId } = usePortfolio();
   const { toast } = useToast();
 
-  return useMutation({
-    mutationFn: (operationData) => api.cashOperations.create(operationData),
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["cash-operations"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard", "stats"] });
-      queryClient.invalidateQueries({ queryKey: ["cash", "balance"] });
-
-      const typeMap = {
-        deposit: "Wpłata została dodana",
-        withdrawal: "Wypłata została dodana",
-        dividend: "Dywidenda została dodana",
-        fee: "Opłata została dodana",
-      };
-
-      toast.success(
-        typeMap[data.data.type] || "Operacja gotówkowa została utworzona"
-      );
+  const create = useCallback(
+    (operationData) => {
+      return post(`/portfolios/${portfolioId}/cash-operations`, operationData)
+        .then((res) => {
+          const typeMap = {
+            deposit: "Wpłata została dodana",
+            withdrawal: "Wypłata została dodana",
+            dividend: "Dywidenda została dodana",
+            fee: "Opłata została dodana",
+          };
+          toast.success(
+            typeMap[res.data.type] || "Operacja gotówkowa została utworzona"
+          );
+          return res;
+        })
+        .catch((err) => {
+          toast.error(
+            err.response?.data?.message || "Błąd podczas tworzenia operacji"
+          );
+          throw err;
+        });
     },
-    onError: (error) => {
-      toast.error(
-        error.response?.data?.message || "Błąd podczas tworzenia operacji"
-      );
-    },
-  });
+    [portfolioId, toast]
+  );
+
+  return { create };
 }
 
 /**
- * Mutation hook for updating a cash operation
+ * Hook for updating a cash operation
  */
 export function useUpdateCashOperation() {
-  const queryClient = useQueryClient();
+  const { portfolioId } = usePortfolio();
   const { toast } = useToast();
 
-  return useMutation({
-    mutationFn: ({ id, ...data }) => api.cashOperations.update(id, data),
-    onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["cash-operations"] });
-      queryClient.invalidateQueries({
-        queryKey: ["cash-operation", variables.id],
-      });
-      queryClient.invalidateQueries({ queryKey: ["dashboard", "stats"] });
-      queryClient.invalidateQueries({ queryKey: ["cash", "balance"] });
-      toast.success("Operacja została zaktualizowana");
+  const update = useCallback(
+    ({ id, ...data }) => {
+      return patch(`/portfolios/${portfolioId}/cash-operations/${id}`, data)
+        .then((res) => {
+          toast.success("Operacja została zaktualizowana");
+          return res;
+        })
+        .catch((err) => {
+          toast.error(
+            err.response?.data?.message || "Błąd podczas aktualizacji operacji"
+          );
+          throw err;
+        });
     },
-    onError: (error) => {
-      toast.error(
-        error.response?.data?.message || "Błąd podczas aktualizacji operacji"
-      );
-    },
-  });
+    [portfolioId, toast]
+  );
+
+  return { update };
 }
 
 /**
- * Mutation hook for deleting a cash operation
+ * Hook for deleting a cash operation
  */
 export function useDeleteCashOperation() {
-  const queryClient = useQueryClient();
+  const { portfolioId } = usePortfolio();
   const { toast } = useToast();
 
-  return useMutation({
-    mutationFn: (id) => api.cashOperations.delete(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["cash-operations"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard", "stats"] });
-      queryClient.invalidateQueries({ queryKey: ["cash", "balance"] });
-      toast.success("Operacja została usunięta");
+  const remove = useCallback(
+    (id) => {
+      return del(`/portfolios/${portfolioId}/cash-operations/${id}`)
+        .then((res) => {
+          toast.success("Operacja została usunięta");
+          return res;
+        })
+        .catch((err) => {
+          toast.error(
+            err.response?.data?.message || "Błąd podczas usuwania operacji"
+          );
+          throw err;
+        });
     },
-    onError: (error) => {
-      toast.error(
-        error.response?.data?.message || "Błąd podczas usuwania operacji"
-      );
-    },
-  });
+    [portfolioId, toast]
+  );
+
+  return { remove };
 }
 
 /**
- * Hook for cash balance
+ * Hook for fetching cash balance
  */
 export function useCashBalance() {
-  return useQuery({
-    queryKey: ["cash", "balance"],
-    queryFn: () => api.cashOperations.getBalance(),
-    select: (data) => data.data,
-    staleTime: 1000 * 60, // 1 minute
-  });
+  const { portfolioId } = usePortfolio();
+  const [balance, setBalance] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!portfolioId) return;
+    setLoading(true);
+    get(`/portfolios/${portfolioId}/cash-operations/balance`)
+      .then((res) => setBalance(res.data))
+      .catch((err) => setError(err))
+      .finally(() => setLoading(false));
+  }, [portfolioId]);
+
+  return { balance, loading, error };
 }
 
 /**
  * Hook for cash flow statistics
  */
 export function useCashFlowStats(period = "1y") {
-  return useQuery({
-    queryKey: ["cash", "flow-stats", period],
-    queryFn: () => api.cashOperations.getFlowStats(period),
-    select: (data) => data.data,
-    staleTime: 1000 * 60 * 10, // 10 minutes
-  });
+  const { portfolioId } = usePortfolio();
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!portfolioId) return;
+    setLoading(true);
+    get(`/portfolios/${portfolioId}/cash-operations/flow-stats`, {
+      params: { period },
+    })
+      .then((res) => setStats(res.data))
+      .catch((err) => setError(err))
+      .finally(() => setLoading(false));
+  }, [portfolioId, period]);
+
+  return { stats, loading, error };
 }
 
 /**
  * Hook for monthly cash flow
  */
+
 export function useMonthlyCashFlow(year) {
-  return useQuery({
-    queryKey: ["cash", "monthly-flow", year],
-    queryFn: () => api.cashOperations.getMonthlyFlow(year),
-    select: (data) => data.data,
-    enabled: !!year,
-    staleTime: 1000 * 60 * 30, // 30 minutes
-  });
+  const { portfolioId } = usePortfolio();
+  const [flow, setFlow] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!portfolioId || !year) return;
+    setLoading(true);
+    get(`/portfolios/${portfolioId}/cash-operations/monthly-flow`, {
+      params: { year },
+    })
+      .then((res) => setFlow(res.data))
+      .catch((err) => setError(err))
+      .finally(() => setLoading(false));
+  }, [portfolioId, year]);
+
+  return { flow, loading, error };
 }
 
 export default useCashOperations;

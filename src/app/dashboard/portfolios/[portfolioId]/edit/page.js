@@ -65,7 +65,7 @@ export default function EditPortfolioPage() {
         <h2 className="text-xl font-semibold text-gray-900 mb-2">
           Portfolio nie znaleziony
         </h2>
-        <Button asChild>
+        <Button>
           <Link href="/dashboard/portfolios">Powrót do listy portfeli</Link>
         </Button>
       </div>
@@ -275,7 +275,7 @@ export default function EditPortfolioPage() {
 
         {/* Actions */}
         <div className="flex justify-end space-x-4">
-          <Button type="button" variant="outline" asChild>
+          <Button type="button" variant="outline">
             <Link href={`/dashboard/portfolios/${portfolioId}`}>Anuluj</Link>
           </Button>
           <Button type="submit" loading={updating} disabled={updating}>

@@ -1,10 +1,11 @@
 "use client";
+
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Download, Plus } from "lucide-react";
 import { useToast } from "@/contexts/ToastContext";
-import { useCashOperations } from "@/hooks/usePortfolios";
+import { useCashOperations } from "@/hooks/useCashOperations";
 import CashOperationsFilters from "./CashOperationsFilters";
 import CashOperationsTable from "./CashOperationsTable";
 import CashOperationsSummary from "./CashOperationsSummary";
@@ -18,43 +19,31 @@ export default function CashOperationsManager({ portfolioId }) {
     dateFrom: "",
     dateTo: "",
     status: "all",
+    page: 1,
+    portfolioId: portfolioId,
   });
 
   const {
-    data: operations = [],
-    isLoading,
-    isError,
-    refetch,
-  } = useCashOperations(portfolioId, {
-    type: filters.type === "all" ? undefined : filters.type,
-    search: filters.search || undefined,
-    dateFrom: filters.dateFrom || undefined,
-    dateTo: filters.dateTo || undefined,
-    status: filters.status === "all" ? undefined : filters.status,
-  });
+    data: { operations, analytics, pagination },
+    loading,
+    error,
+    refresh,
+  } = useCashOperations(filters);
 
-  // Computed values for summary
+  console.log(analytics);
+
+  // Computed values for summary from analytics
   const summary = useMemo(() => {
-    if (!operations.length)
+    if (!analytics) {
       return { total: 0, income: 0, expense: 0, count: 0 };
-
-    return operations.reduce(
-      (acc, op) => {
-        const amount = parseFloat(op.amount);
-        acc.count += 1;
-        acc.total += amount;
-
-        if (amount > 0) {
-          acc.income += amount;
-        } else {
-          acc.expense += Math.abs(amount);
-        }
-
-        return acc;
-      },
-      { total: 0, income: 0, expense: 0, count: 0 }
-    );
-  }, [operations]);
+    }
+    return {
+      total: analytics.summary?.totalBalance ?? 0,
+      income: analytics.summary?.income ?? 0,
+      expense: analytics.summary?.expense ?? 0,
+      count: analytics.summary?.operations ?? 0,
+    };
+  }, [analytics]);
 
   const handleExport = async () => {
     try {
@@ -73,7 +62,7 @@ export default function CashOperationsManager({ portfolioId }) {
     }
   };
 
-  if (isError) {
+  if (error) {
     return (
       <Card className="w-full">
         <CardContent className="p-6 text-center">
@@ -86,10 +75,13 @@ export default function CashOperationsManager({ portfolioId }) {
     );
   }
 
+  if (loading) {
+  }
+
   return (
     <div className="space-y-6">
       {/* Summary Cards */}
-      <CashOperationsSummary summary={summary} isLoading={isLoading} />
+      <CashOperationsSummary summary={summary} isLoading={loading} />
 
       {/* Main Content */}
       <Card>
@@ -99,7 +91,7 @@ export default function CashOperationsManager({ portfolioId }) {
             <Button
               variant="outline"
               onClick={handleExport}
-              disabled={!operations.length}
+              disabled={!operations}
             >
               <Download className="w-4 h-4 mr-2" />
               Eksportuj
@@ -116,11 +108,12 @@ export default function CashOperationsManager({ portfolioId }) {
             filters={filters}
             onFiltersChange={setFilters}
           />
-
           <CashOperationsTable
             operations={operations}
-            isLoading={isLoading}
-            onRefresh={() => refetch()}
+            pagination={pagination}
+            isLoading={loading}
+            onRefresh={refresh}
+            onPageChange={(page) => setFilters((f) => ({ ...f, page }))}
           />
         </CardContent>
       </Card>

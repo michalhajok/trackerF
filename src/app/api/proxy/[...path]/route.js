@@ -119,7 +119,10 @@ async function forwardToBackend(
   const cleanPath = pathString.startsWith("/")
     ? pathString.slice(1)
     : pathString;
-  const targetUrl = `${baseUrl}/${cleanPath}`;
+
+  const urlObj = new URL(request.url);
+  const queryString = urlObj.search; // np. "?page=1&limit=20&..."
+  const targetUrl = `${baseUrl}/${cleanPath}${queryString}`;
 
   console.log(`🔗 Target URL: ${targetUrl}`);
 

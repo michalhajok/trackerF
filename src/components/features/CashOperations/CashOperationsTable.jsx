@@ -1,6 +1,5 @@
 "use client";
-import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
+
 import {
   Table,
   TableHeader,
@@ -9,129 +8,149 @@ import {
   TableRow,
   TableCell,
 } from "@/components/ui/Table";
-import { MoreHorizontal, Edit, Trash2 } from "lucide-react";
-import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
-
-const getStatusVariant = (status) => {
-  switch (status) {
-    case "completed":
-      return "default";
-    case "pending":
-      return "secondary";
-    case "cancelled":
-      return "destructive";
-    default:
-      return "outline";
-  }
-};
-
-const getTypeColor = (type) => {
-  const colors = {
-    deposit: "text-green-600",
-    withdrawal: "text-red-600",
-    dividend: "text-blue-600",
-    interest: "text-purple-600",
-    fee: "text-orange-600",
-    transfer: "text-gray-600",
-    tax: "text-red-700",
-  };
-  return colors[type] || "text-gray-600";
-};
-
-const formatAmount = (amount, currency = "PLN") => {
-  const value = parseFloat(amount);
-  const sign = value >= 0 ? "+" : "";
-  return `${sign}${value.toFixed(2)} ${currency}`;
-};
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Edit, Trash2, MoreHorizontal } from "lucide-react";
+// import { useDeleteCashOperation } from "@/hooks/useCashOperations";
+import { format } from "date-fns";
 
 export default function CashOperationsTable({
   operations,
+  pagination,
   isLoading,
   onRefresh,
+  onPageChange,
 }) {
+  // const { remove } = useDeleteCashOperation();
+
+  const TYPE_OPTIONS = [
+    { value: "all", label: "Wszystkie" },
+    { value: "deposit", label: "Wpłata" },
+    { value: "withdrawal", label: "Wypłata" },
+    { value: "dividend", label: "Dywidenda" },
+    { value: "fee", label: "Opłata" },
+    { value: "interest", label: "???" },
+    { value: "bonus", label: "Bonus" },
+    { value: "transfer", label: "Przelew" },
+    { value: "adjustment", label: "????" },
+    { value: "tax", label: "Podatek" },
+    { value: "withholding_tax", label: "Podatek" },
+    { value: "stock_sale", label: "Sprzedaż akcji" },
+    { value: "stock_purchase", label: "Zakup akcji" },
+    { value: "close_trade", label: "Zamknięcie pozycji" },
+    { value: "fractional_shares", label: "Akcje ułamkowe" },
+    { value: "correction", label: "Korekta" },
+    { value: "subaccount_transfer", label: "Transfer między kontami" },
+  ];
+
+  const STATUS_OPTIONS = [
+    { value: "all", label: "Wszystkie statusy" },
+    { value: "pending", label: "Oczekujące" },
+    { value: "completed", label: "Zakończone" },
+    { value: "cancelled", label: "Anulowane" },
+  ];
+
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <LoadingSpinner />
+      <div className="h-64 flex justify-center items-center">
+        <p>Ładowanie...</p>
       </div>
     );
   }
 
-  if (!operations.length) {
+  if (!operations) {
     return (
-      <div className="text-center py-12">
-        <div className="text-gray-500 text-lg mb-2">Brak operacji</div>
-        <p className="text-gray-400">
-          Nie znaleziono operacji spełniających kryteria
-        </p>
+      <div>
+        <p>Brak operacji</p>
       </div>
     );
   }
+
+  const typeHelper = (e) => {
+    if (!e) return "-";
+    const result = TYPE_OPTIONS.find(({ value }) => value === e);
+    return result.label;
+  };
+
+  const statusHelper = (e) => {
+    if (!e) return "-";
+    const result = STATUS_OPTIONS.find(({ value }) => value === e);
+    return result.label;
+  };
 
   return (
-    <div className="border rounded-lg overflow-hidden">
+    <div>
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead>Data</TableHead>
             <TableHead>Typ</TableHead>
-            <TableHead className="text-right">Kwota</TableHead>
-            <TableHead>Komentarz</TableHead>
+            <TableHead>Kwota</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead className="w-12"></TableHead>
+            <TableHead>Akcje</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {operations.map((operation) => (
-            <TableRow key={operation.id} className="hover:bg-gray-50">
-              <TableCell className="font-mono text-sm">
-                {new Date(operation.time).toLocaleString("pl-PL")}
-              </TableCell>
-
+          {operations.map((op) => (
+            <TableRow key={op.id}>
+              <TableCell>{format(new Date(op.time), "yyyy-MM-dd")}</TableCell>
               <TableCell>
-                <span className={`font-medium ${getTypeColor(operation.type)}`}>
-                  {operation.type}
-                </span>
+                <Badge variant="outline">{typeHelper(op?.type)}</Badge>
               </TableCell>
-
-              <TableCell className="text-right font-mono">
-                <span
-                  className={
-                    parseFloat(operation.amount) >= 0
-                      ? "text-green-600"
-                      : "text-red-600"
+              <TableCell>
+                {parseFloat(op.amount).toFixed(2)} {op.currency}
+              </TableCell>
+              <TableCell>
+                <Badge
+                  variant={
+                    op.status === "completed"
+                      ? "default"
+                      : op.status === "pending"
+                      ? "secondary"
+                      : "destructive"
                   }
                 >
-                  {formatAmount(operation.amount, operation.currency)}
-                </span>
-              </TableCell>
-
-              <TableCell className="max-w-xs">
-                <div className="truncate" title={operation.comment}>
-                  {operation.comment || "-"}
-                </div>
-              </TableCell>
-
-              <TableCell>
-                <Badge variant={getStatusVariant(operation.status)}>
-                  {operation.status}
+                  {statusHelper(op.status)}
                 </Badge>
               </TableCell>
-
-              <TableCell>
-                <div className="flex gap-1">
-                  <Button variant="ghost" size="sm">
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                  <Button variant="ghost" size="sm">
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
+              <TableCell className="flex space-x-2">
+                <Button size="sm" variant="ghost">
+                  <Edit className="w-4 h-4" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    remove(op.id).then(onRefresh);
+                  }}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+                <Button size="sm" variant="ghost">
+                  <MoreHorizontal className="w-4 h-4" />
+                </Button>
               </TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
+
+      {pagination && pagination.pages > 1 && (
+        <div className="flex justify-end space-x-2 mt-4">
+          <Button
+            disabled={!pagination.hasPrev}
+            onClick={() => onPageChange(pagination.current - 1)}
+          >
+            Poprzednia
+          </Button>
+          <Button
+            disabled={!pagination.hasNext}
+            onClick={() => onPageChange(pagination.current + 1)}
+          >
+            Następna
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

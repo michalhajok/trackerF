@@ -10,7 +10,7 @@ import { Select } from "@/components/ui/Select";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { Alert } from "@/components/ui/Alert";
 import { Plus, Download, Filter } from "lucide-react";
-import { usePositions } from "@/hooks/usePortfolios";
+import { usePositions } from "@/hooks/usePositions";
 import { useToast } from "@/contexts/ToastContext";
 
 // Dynamic import dla heavy components (CODE SPLITTING)
@@ -40,12 +40,11 @@ export default function PositionsPage() {
     type: "all",
   });
 
-  // Używamy hooka z usePortfolios.js
   const {
-    data: positions = [],
+    positions,
     isLoading,
-    isError,
-    refetch,
+    error,
+    // refetch,
   } = usePositions(portfolioId, filters);
 
   const handleFilterChange = (key, value) => {
@@ -64,20 +63,12 @@ export default function PositionsPage() {
   if (isLoading) {
     return (
       <div className="p-6">
-        <div className="h-8 bg-gray-200 rounded w-48 mb-6 animate-pulse" />
-        <div className="space-y-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div
-              key={i}
-              className="h-24 bg-gray-100 animate-pulse rounded-lg"
-            />
-          ))}
-        </div>
+        <LoadingSpinner size="lg" />
       </div>
     );
   }
 
-  if (isError) {
+  if (error) {
     return (
       <div className="p-6">
         <Alert type="error" title="Error Loading Positions">
@@ -172,7 +163,7 @@ export default function PositionsPage() {
       {/* Positions List - Używa komponentu z features */}
       <PositionsList
         positions={positions}
-        onRefresh={refetch}
+        onRefresh={console.log("asd")}
         portfolioId={portfolioId}
       />
     </div>

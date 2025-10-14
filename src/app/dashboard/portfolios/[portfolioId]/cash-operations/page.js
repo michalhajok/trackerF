@@ -28,9 +28,7 @@ const CashOperationsManager = dynamic(
 const CashOperationsFilters = dynamic(
   () => import("@/components/features/CashOperations/CashOperationsFilters"),
   {
-    loading: () => (
-      <div className="h-16 bg-gray-100 animate-pulse rounded mb-4"></div>
-    ),
+    loading: () => <LoadingSpinner />,
   }
 );
 

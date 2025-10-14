@@ -34,7 +34,12 @@ import Link from "next/link";
  * @returns {JSX.Element} Position card component
  */
 
-export default function PositionCard({ position, onEdit, onDelete, onClose }) {
+export default React.memo(function PositionCard({
+  position,
+  onEdit,
+  onDelete,
+  onClose,
+}) {
   const { isOpen, isProfit, duration } = useMemo(
     () => ({
       isOpen: position.status === "open",
@@ -262,4 +267,4 @@ export default function PositionCard({ position, onEdit, onDelete, onClose }) {
       </div>
     </Card>
   );
-}
+});

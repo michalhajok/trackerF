@@ -1,4 +1,4 @@
-// src/components/ErrorBoundary.jsx - MISSING!
+// src/components/ErrorBoundary.jsx - MISSING
 export class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
@@ -10,21 +10,27 @@ export class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    console.error("Error Boundary caught:", error, errorInfo);
-    // Log to external service w production
+    console.error("Error Boundary:", error, errorInfo);
+    // Log to external service in production
   }
 
   render() {
     if (this.state.hasError) {
       return (
-        <div className="p-8 text-center">
-          <h2 className="text-xl font-bold text-error">
+        <div className="p-8 text-center border border-error-200 bg-error-50 rounded-lg">
+          <h2 className="text-xl font-bold text-error-700 mb-2">
             Oops! Something went wrong
           </h2>
-          <p className="text-gray-600 mt-2">Please refresh the page</p>
-          <Button onClick={() => window.location.reload()} className="mt-4">
+          <p className="text-error-600 mb-4">
+            {this.props.fallbackMessage ||
+              "Please refresh the page or try again later."}
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-error-500 text-white px-4 py-2 rounded hover:bg-error-600"
+          >
             Refresh Page
-          </Button>
+          </button>
         </div>
       );
     }

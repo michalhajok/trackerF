@@ -1,18 +1,17 @@
 "use client";
+
+import { useState } from "react";
 import { Input } from "@/components/ui/Input";
-import { Select, SelectOption } from "@/components/ui/Select"; // ✅ Używaj tego co faktycznie istnieje
+import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
 import { Search, X } from "lucide-react";
 
-const OPERATION_TYPES = [
+const TYPE_OPTIONS = [
   { value: "all", label: "Wszystkie" },
   { value: "deposit", label: "Wpłaty" },
   { value: "withdrawal", label: "Wypłaty" },
   { value: "dividend", label: "Dywidendy" },
-  { value: "interest", label: "Odsetki" },
   { value: "fee", label: "Opłaty" },
-  { value: "transfer", label: "Transfery" },
-  { value: "tax", label: "Podatki" },
 ];
 
 const STATUS_OPTIONS = [
@@ -23,88 +22,68 @@ const STATUS_OPTIONS = [
 ];
 
 export default function CashOperationsFilters({ filters, onFiltersChange }) {
-  const handleFilterChange = (key, value) => {
-    onFiltersChange((prev) => ({ ...prev, [key]: value }));
-  };
+  const [local, setLocal] = useState(filters);
 
-  const clearFilters = () => {
-    onFiltersChange({
+  const apply = () => onFiltersChange(local);
+  const clear = () => {
+    const reset = {
       type: "all",
       search: "",
       dateFrom: "",
       dateTo: "",
       status: "all",
-    });
+      page: 1,
+    };
+    setLocal(reset);
+    onFiltersChange(reset);
   };
 
-  const hasActiveFilters = Object.values(filters).some(
-    (value) => value && value !== "all" && value !== ""
-  );
-
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg mb-6">
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-        <Input
-          placeholder="Szukaj w komentarzach..."
-          value={filters.search}
-          onChange={(e) => handleFilterChange("search", e.target.value)}
-          className="pl-10"
-        />
-      </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <Input
+        placeholder="Szukaj..."
+        value={local.search}
+        onChange={(e) =>
+          setLocal((prev) => ({ ...prev, search: e.target.value }))
+        }
+        icon={<Search />}
+      />
 
-      {/* Type Filter - POPRAWIONA WERSJA */}
       <Select
-        value={filters.type}
-        onChange={(e) => handleFilterChange("type", e.target.value)}
-        placeholder="Typ operacji"
-      >
-        {OPERATION_TYPES.map((type) => (
-          <SelectOption key={type.value} value={type.value}>
-            {type.label}
-          </SelectOption>
-        ))}
-      </Select>
+        options={TYPE_OPTIONS}
+        value={local.type}
+        onChange={(value) => setLocal((prev) => ({ ...prev, type: value }))}
+      />
 
-      {/* Status Filter - POPRAWIONA WERSJA */}
       <Select
-        value={filters.status}
-        onChange={(e) => handleFilterChange("status", e.target.value)}
-        placeholder="Status"
-      >
-        {STATUS_OPTIONS.map((status) => (
-          <SelectOption key={status.value} value={status.value}>
-            {status.label}
-          </SelectOption>
-        ))}
-      </Select>
+        options={STATUS_OPTIONS}
+        value={local.status}
+        onChange={(value) => setLocal((prev) => ({ ...prev, status: value }))}
+      />
 
-      {/* Date Range */}
-      <div className="flex gap-2">
+      <div className="flex space-x-2">
         <Input
           type="date"
-          value={filters.dateFrom}
-          onChange={(e) => handleFilterChange("dateFrom", e.target.value)}
-          className="text-sm"
+          value={local.dateFrom}
+          onChange={(e) =>
+            setLocal((prev) => ({ ...prev, dateFrom: e.target.value }))
+          }
         />
         <Input
           type="date"
-          value={filters.dateTo}
-          onChange={(e) => handleFilterChange("dateTo", e.target.value)}
-          className="text-sm"
+          value={local.dateTo}
+          onChange={(e) =>
+            setLocal((prev) => ({ ...prev, dateTo: e.target.value }))
+          }
         />
       </div>
 
-      {/* Clear Filters */}
-      {hasActiveFilters && (
-        <div className="flex justify-end lg:col-span-4">
-          <Button variant="ghost" onClick={clearFilters} size="sm">
-            <X className="w-4 h-4 mr-2" />
-            Wyczyść filtry
-          </Button>
-        </div>
-      )}
+      <div className="col-span-full flex justify-end space-x-2">
+        <Button onClick={apply}>Zastosuj</Button>
+        <Button variant="outline" onClick={clear}>
+          <X className="w-4 h-4" />
+        </Button>
+      </div>
     </div>
   );
 }

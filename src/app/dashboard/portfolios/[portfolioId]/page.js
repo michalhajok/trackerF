@@ -23,7 +23,7 @@ export default function PortfolioDashboardPage() {
   const { portfolioId } = useParams();
   const { data: portfolios = [], isLoading: portfoliosLoading } =
     usePortfolios();
-  const { data: stats, isLoading: statsLoading } = usePortfolioStats();
+  // const { data: stats, isLoading: statsLoading } = usePortfolioStats();
 
   if (portfoliosLoading) return <LoadingSpinner size="lg" />;
 
@@ -99,10 +99,7 @@ export default function PortfolioDashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {portfolioStats.totalValue?.toLocaleString("pl-PL", {
-                style: "currency",
-                currency: portfolio.currency,
-              }) || "0 PLN"}
+              {portfolioStats?.totalValue?.toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground">
               Aktualna wartość rynkowa
@@ -125,10 +122,7 @@ export default function PortfolioDashboardPage() {
                 portfolioStats.totalPL >= 0 ? "text-green-600" : "text-red-600"
               }`}
             >
-              {portfolioStats.totalPL?.toLocaleString("pl-PL", {
-                style: "currency",
-                currency: portfolio.currency,
-              }) || "0 PLN"}
+              {portfolioStats?.totalPL}
             </div>
             <p className="text-xs text-muted-foreground">
               {portfolioStats.totalPLPercent?.toFixed(2) || "0"}% zwrotu

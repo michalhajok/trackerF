@@ -3,13 +3,12 @@
 import Link from "next/link";
 import { usePortfolios } from "@/hooks/usePortfolios";
 import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 
 export default function PortfoliosPage() {
   const { data, isLoading } = usePortfolios();
 
   if (isLoading) return <div>Ładowanie portfeli…</div>;
-
-  console.log(data);
 
   if (!data) {
     return (
@@ -26,13 +25,16 @@ export default function PortfoliosPage() {
   return (
     <div>
       <h1>Moje Portfele</h1>
-      <ul>
+      <ul className="flex gap-4 p-4">
         {data?.map((p) => (
-          <li key={p._id}>
-            <Link href={`/dashboard/portfolios/${p._id}`}>{p.name}</Link>
-          </li>
+          <Card key={p._id}>
+            <li>
+              <Link href={`/dashboard/portfolios/${p._id}`}>{p.name}</Link>
+            </li>
+          </Card>
         ))}
       </ul>
+
       <Button>
         <Link href="/dashboard/portfolios/new">Utwórz nowy portfel</Link>
       </Button>
