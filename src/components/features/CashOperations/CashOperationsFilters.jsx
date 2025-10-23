@@ -8,10 +8,22 @@ import { Search, X } from "lucide-react";
 
 const TYPE_OPTIONS = [
   { value: "all", label: "Wszystkie" },
-  { value: "deposit", label: "Wpłaty" },
-  { value: "withdrawal", label: "Wypłaty" },
-  { value: "dividend", label: "Dywidendy" },
-  { value: "fee", label: "Opłaty" },
+  { value: "deposit", label: "Wpłata" },
+  { value: "withdrawal", label: "Wypłata" },
+  { value: "dividend", label: "Dywidenda" },
+  { value: "fee", label: "Opłata" },
+  { value: "interest", label: "???" },
+  { value: "bonus", label: "Bonus" },
+  { value: "transfer", label: "Przelew" },
+  { value: "adjustment", label: "????" },
+  { value: "tax", label: "Podatek" },
+  { value: "withholding_tax", label: "Podatek" },
+  { value: "stock_sale", label: "Sprzedaż akcji" },
+  { value: "stock_purchase", label: "Zakup akcji" },
+  { value: "close_trade", label: "Zamknięcie pozycji" },
+  { value: "fractional_shares", label: "Akcje ułamkowe" },
+  { value: "correction", label: "Korekta" },
+  { value: "subaccount_transfer", label: "Transfer między kontami" },
 ];
 
 const STATUS_OPTIONS = [
@@ -50,16 +62,27 @@ export default function CashOperationsFilters({ filters, onFiltersChange }) {
       />
 
       <Select
-        options={TYPE_OPTIONS}
         value={local.type}
         onChange={(value) => setLocal((prev) => ({ ...prev, type: value }))}
-      />
+      >
+        {TYPE_OPTIONS.map(({ value, label }) => (
+          <option key={value} value={value}>
+            {label}
+          </option>
+        ))}
+      </Select>
 
       <Select
         options={STATUS_OPTIONS}
         value={local.status}
         onChange={(value) => setLocal((prev) => ({ ...prev, status: value }))}
-      />
+      >
+        {STATUS_OPTIONS.map(({ value, label }) => (
+          <option key={value} value={value}>
+            {label}
+          </option>
+        ))}
+      </Select>
 
       <div className="flex space-x-2">
         <Input
